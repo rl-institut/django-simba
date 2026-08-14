@@ -1,4 +1,4 @@
 {% load i18n %}
-{% translate 'Willkommen bei WeBus! Klicken Sie auf folgenden Link, um die Registrierung abzuschließen:' %}
+{% translate 'Willkommen bei WeBus! Klicke auf folgenden Link, um die Registrierung abzuschließen:' %}
 
 {{ host_url }}{% url 'core:signup' %}?token={{ token }}

@@ -11,7 +11,7 @@ from django.core.cache import cache
 def import_view(request):
     if request.method == "GET":
         if not request.user.is_superuser:
-            return HttpResponseForbidden("Sie haben keinen Zugriff auf diese Seite.")
+            return HttpResponseForbidden("Du hast keinen Zugriff auf diese Seite.")
 
         return render(request, "temperatures/import.html")
     elif request.method == "POST":

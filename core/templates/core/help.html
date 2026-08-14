@@ -45,15 +45,15 @@
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {% blocktranslate %}
-          WeBus hilft Ihnen bei der Umstellung ihres Bussystems vom Dieselbetrieb auf den elektrischen Betrieb.
-          Sie können den Einfluss verschiedener Fahrzeugparameter erproben, die Elektrifizierung von Endhaltestellen testen, entscheidende Parameter ihres Fahrzeugdepots bestimmen und vieles mehr.
-          WeBus stellt ihnen hierzu eine Weboberfläche zur Verfügung, die ihr spezifisches System in einer Simulation berechnet.
+          WeBus hilft dir bei der Umstellung deines Bussystems vom Dieselbetrieb auf den elektrischen Betrieb.
+          Du kannst den Einfluss verschiedener Fahrzeugparameter erproben, die Elektrifizierung von Endhaltestellen testen, entscheidende Parameter deines Fahrzeugdepots bestimmen und vieles mehr.
+          WeBus stellt dir hierzu eine Weboberfläche zur Verfügung, die dein spezifisches System in einer Simulation berechnet.
           Hierzu wird ein Modell erstellt, welches die beiden Open-Source-Tools SimBA und eFLIPS miteinander kombiniert.
 
-          In den folgenden Abschnitten finden sie Erklärungen zu den Eingabeparametern, Informationen zu technischen Hintergründen, sowie Erläuterungen zu den Ergebnissen der Simulation.
+          In den folgenden Abschnitten findest du Erklärungen zu den Eingabeparametern, Informationen zu technischen Hintergründen, sowie Erläuterungen zu den Ergebnissen der Simulation.
           <!-- TODO needs styling -->
-          <li class="list-inside list-disc py-1 text-slate-800">Sie möchten mehr über das Projekt erfahren?  WeBus. </li>
-          <li class="list-inside list-disc py-1 text-slate-800">Sie haben einen Fehler gefunden oder vermissen ein Feature?  Kontakt. </li>
+          <li class="list-inside list-disc py-1 text-slate-800">Du möchtest mehr über das Projekt erfahren?  WeBus. </li>
+          <li class="list-inside list-disc py-1 text-slate-800">Du hast einen Fehler gefunden oder vermisst ein Feature?  Kontakt. </li>
           {% endblocktranslate %}
         </p>
       </section>
@@ -63,7 +63,7 @@
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
         {% blocktranslate %}
-          Für die Simulation Ihres Bussystems benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
+          Für die Simulation deines Bussystems benötigt WeBus Eingangsdaten. Diese können in folgenden Formaten hochgeladen werden:
         </p>
         <li class="list-inside list-disc py-1 text-slate-800">VDV 452</li>
         <li class="list-inside list-disc py-1 text-slate-800">SimBA .csv</li>
@@ -73,7 +73,7 @@
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           Die <a class="text-blue-600 hover:underline" href="https://www.vdv.de/downloads/4328/452V1%206%20SDS/forced">VDV Schrift 452</a> beschreibt eine Schnittstelle zum Austausch von verschiedenen Informationen,
           wie z.B. zu Sollfahrplänen, Liniennetz, Anschlussdefinitionen und Elektromobilität.
-          Eine Vielzahl an Tools erlaubt den direkten Export Ihres Umlaufplans zu VDV 452. Eine unvollständige Liste finden sie <a class="text-blue-600 hover:underline" href="https://www.vdv.de/kompatible-produkte-8.2013.pdfx">hier</a>. Der Dateityp für diese Schnittstelle ist <i>.X10</i>
+          Eine Vielzahl an Tools erlaubt den direkten Export deines Umlaufplans zu VDV 452. Eine unvollständige Liste findest du <a class="text-blue-600 hover:underline" href="https://www.vdv.de/kompatible-produkte-8.2013.pdfx">hier</a>. Der Dateityp für diese Schnittstelle ist <i>.X10</i>
           Folgende Dateien müssen in dem Export enthalten sein.
           <!-- no need for translation -->
           <li class="list-inside list-disc py-1 text-slate-800"><i>MENGE_BASIS_VERSIONEN</i></li>
@@ -113,7 +113,7 @@
           <a href="#simba_schedule">SimBA Format</a>
         </h3>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
-          WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation finden Sie <a class="text-blue-600 hover:underline" href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
+          WeBus erlaubt das .csv Dateiformat nach SimBA Spezifikation. Dies ist ein spezifisches Format für <a class="text-blue-600 hover:underline" href="https://github.com/rl-institut/SimBA">SimBA</a>. Die Formatspezifikation findest du <a class="text-blue-600 hover:underline" href='https://rli-simba.readthedocs.io/en/latest/simulation_parameters.html#schedule'>hier</a>. Für WeBus kann ein weiter reduziertes Format genutzt werden.
           WeBus erwartet eine .csv Datei mit Komma / ',' als Trennzeichen. Folgende Spaltennamen MÜSSEN enthalten sein.
           <li class="list-inside list-disc py-1 text-slate-800"><i>departure_name</i></li>
           <li class="list-inside list-disc py-1 text-slate-800"><i>departure_time</i></li>
@@ -238,7 +238,7 @@
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {% blocktrans %}
-          WeBus erlaubt Ihnen eine vereinfachte Simulation von Teilen Ihres Bussystems, auch wenn Ihnen nur eine Datei des Umlaufplans vorliegt. Hierzu können Sie auf der Seite Filter eine Unterauswahl aus Umläufen und Depots treffen. Drei Filter stehen zur Verfügung.
+          WeBus erlaubt dir eine vereinfachte Simulation von Teilen deines Bussystems, auch wenn dir nur eine Datei des Umlaufplans vorliegt. Hierzu kannst du auf der Seite Filter eine Unterauswahl aus Umläufen und Depots treffen. Drei Filter stehen zur Verfügung.
         </p>
         <ul class="list-inside list-disc text-slate-800">
           <li class="py-1">Filtern nach Zeitspanne</li>
@@ -251,12 +251,12 @@
             </ul>
         </ul>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
-          Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, können Sie sehen, nachdem Sie den Button "aktuelle Auswahl anzeigen" geklickt haben. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
+          Bei der Auswahl von Filtern wird sofort berechnet, welche Anzahl an Umläufen in diesem Umlaufplan verbleibt. Dies kann einige Sekunden dauern. Welche Depots und Linien mit der getätigten Auswahl bedient werden, kannst du sehen, nachdem du den Button "aktuelle Auswahl anzeigen" geklickt hast. Der Filter kann durch den Button "Filter Löschen" auf den ungefilterten Startzustand gesetzt werden.
           <br>
-          <b>Nachdem Sie auf "Weiter" geklickt haben, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
+          <b>Nachdem du auf "Weiter" geklickt hast, werden Daten aus dem Szenario gelöscht, welche nicht die verbleibenden Umläufe betreffen.</b>
           <br>
-          Dieser Vorgang kann für das bestehende Szenario nicht rückgängig gemacht werden. Sie können allerdings ein neues Szenario auf Basis der eingelesenen Datei oder des Quellszenarios erstellen.
-          Die Filterung verändert nicht die Quellszenarien. Die ursprünglichen Datensätze aus der Quelldatei können im Reiter "Szenarien" eingesehen werden. Ihnen wird automatisch der Namenssuffix "[ungefiltert]" gegeben.
+          Dieser Vorgang kann für das bestehende Szenario nicht rückgängig gemacht werden. Du kannst allerdings ein neues Szenario auf Basis der eingelesenen Datei oder des Quellszenarios erstellen.
+          Die Filterung verändert nicht die Quellszenarien. Die ursprünglichen Datensätze aus der Quelldatei können im Reiter "Szenarien" eingesehen werden. Dir wird automatisch der Namenssuffix "[ungefiltert]" gegeben.
           {% endblocktrans %}
         </p>
       </section>
@@ -266,10 +266,10 @@
           {% blocktrans %}
           WeBus erkennt Fahrzeugtypen automatisch aus dem Umlaufplan.
           Diesen Fahrzeugtypen müssen technische Eigenschaften zugeordnet werden, sodass die Simulation ausgeführt werden kann.
-          Hierzu können sie jedem Fahrzeugtyp Ihres Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
+          Hierzu kannst du jedem Fahrzeugtyp deines Umlaufplans ein Fahrzeugtyp aus der Fahrzeugbibliothek von WeBus zuordnen.
           Die Fahrzeugtypen besitzen verschiedene Eigenschaften wie Ladekurven, Batteriekapazitäten, Gewichte, geometrische Abmessungen und Verbrauchstabellen.
-          Ausgewählte Parameter können Sie überschreiben.
-          WeBus optimiert ihren Umlaufplan bezogen auf die Anzahl benötigter Fahrzeuge, indem die Fahrzeugdisposition Umläufe mit dem gleichen Fahrzeug bedient, wenn operative und energetische Randbedingungen es zulassen.
+          Ausgewählte Parameter kannst du überschreiben.
+          WeBus optimiert deinen Umlaufplan bezogen auf die Anzahl benötigter Fahrzeuge, indem die Fahrzeugdisposition Umläufe mit dem gleichen Fahrzeug bedient, wenn operative und energetische Randbedingungen es zulassen.
           {% endblocktrans %}
         </p>
         <h3 class="text-m pb-2 pt-4 font-semibold">{% translate 'Fahrzeugeeigenschaften' %}</h3>
@@ -449,8 +449,8 @@
         </h2>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {% blocktrans %}
-          Die Einstellungen in Temperaturen unterstüzen Sie bei der Auswahl geeigneter Verbräuche, wenn Sie diese manuell auswählen möchten. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnten,
-          wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann Ihnen als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
+          Die Einstellungen in Temperaturen unterstüzen dich bei der Auswahl geeigneter Verbräuche, wenn du diese manuell auswählen möchtest. Wenn aus dem hochgeladenen Umlaufplan geographische Informationen ausgelesen werden konnten,
+          wird eine Wetterstation des <a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/">DWD</a> in der Nähe der Systemmitte gesucht und die Temperaturdaten des Jahres 2024 werden analysiert. Für die gewählten Temperaturen wird ein Verbrauchswert aus Basis des gewählten Fahrzeugtyps und der mittleren Geschwindigkeit der Fahrten abgeschätzt. Dieser Wert kann dir als Indikator dienen, welchen Verbrauch die Simulation nutzen wird. Dieser Wert ist ein Schätzwert und kann sich in der nachfolgenden Simulation verändern. Wahlweise kann der Verbrauch des Fahrzeugs durch einen konstanten Wert überschrieben werden. Auf Fahrzeugtypen mit einem konstanten Verbrauch hat die Wahl der Temperaturen keinen Einfluss.
           {% endblocktrans %}
         </p>
       </section>
@@ -461,7 +461,7 @@
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {# TODO: maybe reduce scope of blocktrans? #}
           {% blocktrans %}
-          WeBus erlaubt Ihnen die Untersuchung ihres Bussystems mit verschiedenen Elektrifizierungszuständen.
+          WeBus erlaubt dir die Untersuchung deines Bussystems mit verschiedenen Elektrifizierungszuständen.
           In der Simulation werden Fahrzeuge mit Zwischenladefähigkeit an elektrifizierten Haltestellen geladen, wenn freie Ladesäulen verfügbar sind.
           Die Ladeleistung ist abhängig von der definierten Ladeleistung pro Ladesäule und der Ladekurve des Fahrzeugs, wobei der jeweils niedrigere Wert ausschlaggebend ist.
           Hierzu kann jeder Haltestelle eine Anzahl an Ladesäulen und eine Ladeleistung pro Ladesäule zugewiesen werden.
@@ -488,13 +488,13 @@
           Die Auswahl der richtigen Haltestellen, die elektrifiziert werden müssen, um ein fahrbares Szenario zu erstellen, kann sehr komplex sein. Daher wird empfohlen folgendermaßen vorzugehen:
         </p>
         <ul class="list-disc">
-          <li class="list-inside py-1 text-slate-800">Schalten Sie Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
-          <li class="list-inside py-1 text-slate-800">Schalten Sie Stationen, die definitiv elektrifiziert werden sollen, auf "elektrifiziert" und stellen die Parameter entsprechend ein.</li>
-          <li class="list-inside py-1 text-slate-800">Schalten Sie alle anderen Stationen auf "automatisch".</li>
+          <li class="list-inside py-1 text-slate-800">Schalte Stationen, die nicht elektrifiziert werden dürfen oder können, z.B. wegen Platzgründen, auf "nicht-elektrifizieren".</li>
+          <li class="list-inside py-1 text-slate-800">Schalte Stationen, die definitiv elektrifiziert werden sollen, auf "elektrifiziert" und stelle die Parameter entsprechend ein.</li>
+          <li class="list-inside py-1 text-slate-800">Schalte alle anderen Stationen auf "automatisch".</li>
         </ul>
         <p class="text-m pb-2 leading-relaxed text-slate-800 text-block">
-          Somit erreichen Sie optimale Startbedingungen, um ein fahrbares Szenario zu erstellen.
-          In weiteren Iterationen können sie durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen weitere Varianten erstellen.
+          Somit erreichst du optimale Startbedingungen, um ein fahrbares Szenario zu erstellen.
+          In weiteren Iterationen kannst du durchs wahlweise setzen von Elektrifizierung und Nicht-Elektrifizierung von Stationen weitere Varianten erstellen.
         </p>
       </section>
       <section>
@@ -628,7 +628,7 @@
         </p>
         <a id="station_optimization" href="#station_optimization" class="pb-2 pt-4 text-2xl font-semibold">Stationsoptimierung</a>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
-          Sollte Ihr Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit, dass mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
+          Sollte dein Bussystem mit den ausgewählten Fahrzeugtypen nicht fahrbar sein, so besteht die Möglichkeit, dass mittels Stationsoptimierung ein fahrbarer Zustand erreicht wird.
           Nicht fahrbar bedeutet in diesem Kontext: Ein voll geladener Bus kann einen Umlauf nicht bedienen, ohne dass der SoC des Fahrzeugs unter 0&nbsp;% fällt.
           Wenn das Fahrzeug diesen Umlauf bedienen könnte, wenn es an Stationen die momentan nicht elektrifiziert sind zwischenladen würde, so wird die Stationsoptimierung ausgeführt.
           Hierbei werden nur Stationen untersucht, die als elektrifizerbar markiert wurden. Dies geschieht, indem auf der Seite "Stationen" die Station mit "automatisch" markiert wird.
@@ -641,16 +641,16 @@
           {% url 'simba:JSON_import_scenario_tree' as import_url %}
           {% url 'simba:dashboard' as dashboard_url %}
           {% blocktrans %}
-          Ihre Szenarien können Sie über das <a href="{{dashboard_url}}" class="text-blue-600 hover:underline">Szenario-Dashboard</a> exportieren.
+          Deine Szenarien kannst du über das <a href="{{dashboard_url}}" class="text-blue-600 hover:underline">Szenario-Dashboard</a> exportieren.
           Der Export von Daten ist bei Szenarienmöglich die bereits gefiltert und in der Berabeitung sind oder deren Simulation abgeschlossen ist.
-          Klicken Sie hierfür auf den Knopf mit drei Punkten, neben einem Szenario. Der Export enthält sämtliche Daten des Szenarios inklusive des Szenarios das aus der Quelldatei erzeugt wurde. Teilen Sie Daten-Exports nur mit Menschen, denen Sie vollständige Einsicht in Ihr Szenario gestatten möchten.
-          Wenn Sie auf "Daten exportieren" klicken, laden sie ein Szenario herunter, was für den Import in WeBus geeignet ist.
+          Klicke hierfür auf den Knopf mit drei Punkten, neben einem Szenario. Der Export enthält sämtliche Daten des Szenarios inklusive des Szenarios das aus der Quelldatei erzeugt wurde. Teile Daten-Exports nur mit Menschen, denen du vollständige Einsicht in dein Szenario gestatten möchtest.
+          Wenn du auf "Daten exportieren" klickst, lädst du ein Szenario herunter, was für den Import in WeBus geeignet ist.
           Der Import kann über die <a href="{{import_url}}" class="text-blue-600 hover:underline">Import</a> Seite stattfinden.
           Diese Seite kann nur im eingeloggten Zustand aufgerufen werden.
-          Nachdem Sie die Datei aus dem Export hochgeladen haben, wird Sie Ihnen im <a href="{{dashboard_url}}" class="text-blue-600 hover:underline">Szenario-Dashboard</a> angezeigt.
-          Sie können nun Varianten davon erstellen.
-          Der <a href="#expert_mode" class="text-blue-600 hover:underline">Expertenmodus</a> erlaubt Ihnen die Datei vor dem importieren zu Verändern.<br>
-          Sollten Sie nur Interesse an den Ergebnissen einer Simulation haben, so können Sie bei Szenarien, welche "abgeschlossen" sind, über den Knopf mit den drei Punkten durch Auswahl "Ergebnisse exportieren" die Ergebnisse ihres Szenarios exportieren.
+          Nachdem du die Datei aus dem Export hochgeladen hast, wird sie dir im <a href="{{dashboard_url}}" class="text-blue-600 hover:underline">Szenario-Dashboard</a> angezeigt.
+          Du kannst nun Varianten davon erstellen.
+          Der <a href="#expert_mode" class="text-blue-600 hover:underline">Expertenmodus</a> erlaubt dir die Datei vor dem importieren zu Verändern.<br>
+          Solltest du nur Interesse an den Ergebnissen einer Simulation haben, so kannst du bei Szenarien, welche "abgeschlossen" sind, über den Knopf mit den drei Punkten durch Auswahl "Ergebnisse exportieren" die Ergebnisse deines Szenarios exportieren.
           Die Ergebnisse umfassen zwei .json Dateien, die die Simulation für das Durchschnittsszenario und das Extremszenario abbilden.
           Die Daten können vielfältigt weitergenutzt werden, beispielsweise für eigene Visualisierungsmethoden.
           {% endblocktrans %}
@@ -660,18 +660,18 @@
         <a id="results" href="#results" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Ergebnisse' %}</a>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {% blocktrans %}
-          Im Folgenden finden Sie Erläuterungen zu den Kennzahlen und Grafiken, die Sie auf der Ergebnis-Seite finden.
+          Im Folgenden findest du Erläuterungen zu den Kennzahlen und Grafiken, die du auf der Ergebnis-Seite findest.
           {% endblocktrans %}
         </p>
         <a id="expert_mode" href="#expert_mode" class="pb-2 pt-4 text-2xl font-semibold">{% translate 'Expertenmodus' %}</a>
         <p class="text-base pb-4 leading-relaxed text-slate-800 text-block">
           {% blocktrans %}
-          WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Sollten Sie spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
+          WeBus bietet einen vereinfachten Zugang für die Simulation von zu elektrifizierenden Bussystemen. Hierzu wurde der Funktionsumfang der Weboberfläche auf die wichtigsten Aspekte reduziert. Solltest du spezielle Anforderungen an beispielsweise technische Eigenschaften der Fahrzeuge haben, so lassen sich diese in einem Expertenmodus bearbeiten.
           Hierzu sind folgende drei Schritte notwendig:
           <ol class="list-decimal m-auto p-0 text-slate-800">
-            <li class="list-inside list-disc py-1 text-slate-800">Exportieren Sie ihr Szenario, welches Sie anpassen möchten, mittels "Daten exportieren". Eine Anleitung finden Sie <a href="#import_export" class="text-blue-600 hover:underline">hier</a>. </li>
-            <li class="list-inside list-disc py-1 text-slate-800">Passen Sie die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an. Hierzu sind die Daten im Szenario vom typ "MUTATION" entscheidend. Sämtliche Einstellungen die Sie in WeBus vornehmen, werden an diesem Szenario getätigt."</li>
-            <li class="list-inside list-disc py-1 text-slate-800">Importieren Sie die angepasste Datei. Sie können diese nun simulieren. Da der Eingabefluss nicht für den Expertenmodus ausgelegt ist, sollten Sie direkt zur Zusammenfassung/Summary springen um hier die Simulation zu starten.</li>
+            <li class="list-inside list-disc py-1 text-slate-800">Exportiere dein Szenario, welches du anpassen möchtest, mittels "Daten exportieren". Eine Anleitung findest du <a href="#import_export" class="text-blue-600 hover:underline">hier</a>. </li>
+            <li class="list-inside list-disc py-1 text-slate-800">Passe die Eigenschaften der verschiedenen Komponenten in der exportierten .json Datei an. Hierzu sind die Daten im Szenario vom typ "MUTATION" entscheidend. Sämtliche Einstellungen die du in WeBus vornimmst, werden an diesem Szenario getätigt."</li>
+            <li class="list-inside list-disc py-1 text-slate-800">Importiere die angepasste Datei. Du kannst diese nun simulieren. Da der Eingabefluss nicht für den Expertenmodus ausgelegt ist, solltest du direkt zur Zusammenfassung/Summary springen um hier die Simulation zu starten.</li>
           </ol>
           {% endblocktrans %}
         </p>
@@ -680,7 +680,7 @@
         <a id='faq' href="#faq" class="inline-block pb-2 pt-4 text-2xl font-semibold">{% translate 'FAQ' %}</a>
         <p class="text-base pb-4 leading-relaxed">
           {% blocktrans %}
-          Im Folgenden erhalten Sie Antworten auf häufig gestellte Fragen.
+          Im Folgenden erhältst du Antworten auf häufig gestellte Fragen.
           <details class="group" >
             <summary class="list-none cursor-pointer">
               <span class='text-xl font-semibold underline pb-2 '>Warum dauert die Simulation so lange?</span>
@@ -689,9 +689,9 @@
             <p class="text-slate-800 text-block">
               Eine lange Simulationszeit kann mehrere Gründe haben. Handelt es sich um einen komplexen Umlaufplan, der mehrere Tage oder sogar Wochen umfasst? Die Stationsoptimierung und Depotplanung für solche Systeme ist aufwendig und kann längere Zeit in Anspruch nehmen. Für schnellere Ergebnisse empfehlen wir folgendes Vorgehen:
               <ol class='list-disc'>
-                <li class="list-inside list-disc py-1 text-slate-800" >Reduzieren Sie die zu simulierende Zeitspanne auf ein oder zwei Tage, die repräsentativ für das System sind. Eine Eingabe mit sich wiederholenden Umläufen führt zu keiner Verbesserung der Ergebnisse, verlangsamt die Simulation jedoch drastisch. </li>
-                <li class="list-inside list-disc py-1 text-slate-800">Nutzen Sie realistische Parameter für Batteriekapazität, Ladeleistungen und Verbräuche.</li>
-                <li class="list-inside list-disc py-1 text-slate-800">Simulieren Sie Umläufe als zusammengefasste Fahrten von Endhaltestelle zu Endhaltestelle ohne Zwischenhalte. Dies beschleunigt die Verbrauchsberechnung und Stationsoptimierung. Wenn Sie die Verbrauchswerte der Fahrzeuge nicht angeben, kann dies den geschätzen Verbrauch der Fahrzeuge leicht verändern.</li>
+                <li class="list-inside list-disc py-1 text-slate-800" >Reduziere die zu simulierende Zeitspanne auf ein oder zwei Tage, die repräsentativ für das System sind. Eine Eingabe mit sich wiederholenden Umläufen führt zu keiner Verbesserung der Ergebnisse, verlangsamt die Simulation jedoch drastisch. </li>
+                <li class="list-inside list-disc py-1 text-slate-800">Nutze realistische Parameter für Batteriekapazität, Ladeleistungen und Verbräuche.</li>
+                <li class="list-inside list-disc py-1 text-slate-800">Simuliere Umläufe als zusammengefasste Fahrten von Endhaltestelle zu Endhaltestelle ohne Zwischenhalte. Dies beschleunigt die Verbrauchsberechnung und Stationsoptimierung. Wenn du die Verbrauchswerte der Fahrzeuge nicht angibst, kann dies den geschätzen Verbrauch der Fahrzeuge leicht verändern.</li>
               </ol>
             </p>
           </details>

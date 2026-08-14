@@ -96,7 +96,7 @@ ROOT_URLCONF = "ebusdjango.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "ebus_map/static"],
+        "DIRS": [BASE_DIR / "ebus_map/static", BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

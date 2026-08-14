@@ -143,7 +143,7 @@ class TripsForm(forms.Form):
         # check sum of file sizes
         if sum([f.size for f in self.files.values()]) > settings.MAX_FILE_SIZE_B:
             error_text = (
-                "Datei ist zu groß. Laden sie eine Datei kleiner "
+                "Datei ist zu groß. Lade eine Datei kleiner "
                 f"als {settings.MAX_FILE_SIZE_B / 1e6} MB hoch."
             )
             self.errors["data_file"] = error_text
@@ -184,7 +184,7 @@ class VehicleTypeForm(forms.ModelForm):
 
         help_texts = {
             "battery_capacity": _(
-                "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps anpassen."
+                "Hier kannst du die gewünschte Batteriekapazität des Fahrzeugtyps anpassen."
             ),
             "consumption": _("Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?"),
             "max_consumption": _("Welchen max. Verbrauch in kWh/km hat dieses Fahrzeug?"),
@@ -300,7 +300,7 @@ class DepotConfigurationWishForm(forms.ModelForm):
         help_texts = {
             "auto_generate": _(
                 "Ein Algorithmus bestimmt die benötigte Größe des Depots, "
-                "sowie technische Parameter, automatisch für Sie."
+                "sowie technische Parameter, automatisch für dich."
             ),
             "default_power": _("max. Ladeleistung pro Ladepunkt"),
             "standard_block_length": _("Länge des Blocks"),

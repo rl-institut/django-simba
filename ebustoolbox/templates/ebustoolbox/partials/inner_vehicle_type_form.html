@@ -111,8 +111,8 @@
     <div id="busTypeHiddenSection{{ vt_id }}" class="flex-1 bg-slate-100">
       <div id="ChartPlaceholder{{ vt_id }}"
            class="flex flex-col justify-center items-center text-sm text-slate-500 h-full">
-        <div>{% translate 'Wählen Sie einen Bus aus.' %}</div>
-        <div>{% translate 'Hier wird Ihnen die Ladekurve des Fahrzeugs angezeigt.' %}</div>
+        <div>{% translate 'Wähle einen Bus aus.' %}</div>
+        <div>{% translate 'Hier wird dir die Ladekurve des Fahrzeugs angezeigt.' %}</div>
       </div>
       <div id="stateOfChargeChart{{ vt_id }}"
            class="flex justify-center bg-slate-100"></div>
@@ -151,7 +151,7 @@
                      {{ modification.vehicle_modification.consumption|widget_attrs }}
                      {% if modification.vehicle_modification.consumption.initial is None %}disabled{% endif %}
                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 disabled:bg-gray-200"
-                     placeholder='{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.consumption }} {% else %} {% translate "Wählen Sie ein Fahrzeug aus" %} {% endif %}'>
+                     placeholder='{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.consumption }} {% else %} {% translate "Wähle ein Fahrzeug aus" %} {% endif %}'>
               <div id="consumptionUnit{{ vt_id }}"
                    class="shrink-0 select-none text-sm text-slate-500">{% translate "kWh/km" %}</div>
             </div>
@@ -214,7 +214,7 @@
                      {{ modification.vehicle_modification.max_consumption|widget_attrs }}
                      {% if modification.vehicle_modification.max_consumption.initial is None %}disabled{% endif %}
                      class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6 disabled:bg-gray-200"
-                     placeholder="{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.max_consumption }}               {% else %}  Wählen Sie ein Fahrzeug aus {% endif %}">
+                     placeholder="{% if modification.selection.instance.default_vehicle_type is not None %}{{ modification.selection.instance.default_vehicle_type.max_consumption }}               {% else %}  Wähle ein Fahrzeug aus {% endif %}">
               <div id="maxconsumptionUnit{{ vt_id }}"
                    class="shrink-0 select-none text-sm text-slate-500">kWh/km</div>
             </div>
