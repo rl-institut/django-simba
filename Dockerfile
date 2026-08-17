@@ -22,7 +22,7 @@ ENV PYTHONUTF8=1
 
 # Install GDAL as root
 RUN apt-get update &&\
-    apt-get install -y binutils libproj-dev gdal-bin
+    apt-get install -y binutils libproj-dev gdal-bin gettext
 
 # Install poetry separated from system interpreter
 RUN python3 -m venv $POETRY_VENV \
