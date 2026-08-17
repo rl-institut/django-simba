@@ -2,6 +2,7 @@
 
 As map app is SPA, this module contains main view and various API points.
 """
+
 from collections import namedtuple
 from typing import Optional, Iterable
 
@@ -13,6 +14,7 @@ from django.template.exceptions import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.views.generic import TemplateView
 from django_mapengine import views
+from django.utils.translation import gettext as _
 
 LookupFunctions = namedtuple("PopupData", ("data_fct", "chart_fct", "choropleth_fct"))
 # from . import config
@@ -43,6 +45,16 @@ def get_popup(request: HttpRequest, lookup: str, id: int) -> response.JsonRespon
     JsonResponse
         containing HTML to render popup and chart options to be used in E-Chart.
     """
+    scenario = (
+        apps.get_model(app_label="ebustoolbox", model_name=lookup).objects.get(id=id).scenario
+    )
+
+    # Imported here because ebustoolbox.views imports ebus_map.managers at module scope
+    from ebustoolbox.views import AuthorizedMixIn
+
+    if not AuthorizedMixIn.get_permission(request.user, scenario.task_id):
+        return response.HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+
     data = apps.get_model(app_label="ebustoolbox", model_name=lookup).get_popup_data(id)
     try:
         html = render_to_string(f"popups/{lookup}.html", context=data)

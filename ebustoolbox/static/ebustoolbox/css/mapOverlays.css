@@ -177,3 +177,16 @@ button.btn img {
     color: #475569; /* Tailwind's text-gray-700 */
     margin: 0; /* Remove default margin for alignment */
 }
+/* Station popup.
+   Padding, radius and the close button already live in the theme's styles.css, next to the other
+   popup rules. Only the width is set here, because it has to take effect without a Tailwind
+   rebuild: maplibre caps the popup at the maxWidth popup.js passes (280px), which is narrower
+   than the three-up figure strip needs. The close button sits on the green header, so it is
+   inverted here too. */
+.maplibregl-popup {
+    max-width: 360px !important;
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+    color: #fff;
+}

@@ -382,7 +382,7 @@ function showConsumptionEstimate(temperature, consumptionHintQuery){
     var textElement = hint.querySelector("div .text");
     db_id=getSelectedVehicleTypeId(container);
     if (db_id==null) return;
-    hint.classList.remove("hidden");
+    hint.classList.remove("opacity-0");
     let cons = getConsumptionForTemperature(parseFloat(temperature), db_id);
     textElement.innerText = document.getElementById("translate_geschätzer_verbrauch").innerText + cons.toFixed(2) ;
 })
@@ -457,6 +457,10 @@ async function fetchQuantile(temperature){
     console.error('Fetch error:', e);
     return null;
   }
+}
+{% else %}
+async function fetchQuantile(temperature){
+    return null;
 }
 {% endif %}
 

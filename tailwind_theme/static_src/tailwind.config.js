@@ -26,6 +26,12 @@ module.exports = {
      */
     '../../**/templates/**/*.html',
 
+    /*
+     * Map popups are rendered as templates but live under static/, so the pattern above misses
+     * them and any class used only there would silently not be generated.
+     */
+    '../../**/static/popups/**/*.html',
+
     /**
      * JS: If you use Tailwind CSS in JavaScript, uncomment the following lines and make sure
      * patterns match your project structure.

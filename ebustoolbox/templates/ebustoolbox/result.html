@@ -382,6 +382,52 @@
           </div>
           <div id="DepotlineChart" class="chart-container h-[480px]"></div>
         </div>
+
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="electrified_stations" %}
+      <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto w-full max-w-5xl">
+        <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+          <h3 class="text-base font-semibold text-slate-800">
+            {% translate 'Elektrifizierte Endhaltestellen' %}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500">
+            <span id="electrifiedStationsCount">–</span>&nbsp;{% translate 'Haltestellen' %}
+            &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+            {% if not disable_map %}
+              &middot; {% translate 'Zeile anklicken, um die Haltestelle in der Karte zu zeigen' %}
+            {% endif %}
+          </p>
+        </div>
+        <div class="max-h-[480px] overflow-y-auto relative">
+          <table id="electrifiedStationsTable" class="w-full table-fixed border-collapse bg-white">
+            <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+              <tr class="divide-x divide-slate-200 border-b border-slate-200">
+                <th data-column="name" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/5" onclick="sortStationsTable('name')">
+                  {% translate 'Haltestelle' %}
+                </th>
+                <th data-column="chargers" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('chargers')">
+                  {% translate 'Ladepunkte' %}
+                </th>
+                <th data-column="power_installed" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('power_installed')"
+                    title="{% translate 'Installiert (Ladepunkte × Anschlussleistung), darunter die höchste in der Simulation erreichte Leistung. Beide netzseitig: die Simulation rechnet in Batterieleistung, zurückgerechnet wird mit der Ladeeffizienz des Fahrzeugtyps.' %}">
+                  {% translate 'Leistung' %}
+                </th>
+                <th data-column="energy" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortStationsTable('energy')">
+                  {% translate 'Energie' %}
+                </th>
+                <th data-column="utilization" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('utilization')"
+                    title="{% translate 'Mittlere Belegung bezogen auf die Ladepunkte. Da sich die Ladepunkte aus der Spitzenbelegung ergeben, wird sie nie 100 %; ein niedriger Wert bedeutet ungleichmäßige Ankünfte, nicht einen entbehrlichen Ladepunkt.' %}">
+                  {% translate 'Auslastung' %}
+                </th>
+                <th data-column="lines" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortStationsTable('lines')">
+                  {% translate 'Linien' %}
+                </th>
+              </tr>
+            </thead>
+            <tbody id="electrifiedStationsBody" class="divide-y divide-slate-200 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="flex flex-col">
         <div id="bus-section" class="flex justify-between items-center pb-2">
           <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Fahrzeuge' %}</h2>
@@ -423,6 +469,15 @@
     </div>
     {% include "ebustoolbox/partials/result_export.html" with endpoint="rotation_table" %}
     <div class="bg-white rounded-lg shadow-md mb-12 border border-slate-200 overflow-hidden mx-auto max-w-4xl">
+      <!-- The sibling cards get their heading from the chart itself; this one is plain HTML and
+           had none at all -->
+      <div class="border-b border-slate-200 px-4 pt-6 pb-4 text-center">
+        <h3 class="text-base font-semibold text-slate-800">{% translate 'Umlaufübersicht' %}</h3>
+        <p class="mt-1 text-xs text-slate-500">
+          <span id="rotationTableCount">–</span>&nbsp;{% translate 'Umläufe' %}
+          &middot; {% translate 'Spaltentitel zum Sortieren anklicken' %}
+        </p>
+      </div>
       <div id="table-scroll-container" class="h-[480px] overflow-y-auto relative">
         <table id="rotationTable" class="w-full table-fixed border-collapse bg-white">
           <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
@@ -431,7 +486,7 @@
                 {% translate 'Name' %}
               </th>
               <th data-column="vehicle" class="sortable px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-1/6" onclick="sortTable('vehicle')">
-                {% translate 'Typ' %}
+                {% translate 'Fahrzeug' %}
               </th>
               <th data-column="distance" class="sortable px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" onclick="sortTable('distance')">
                 km
@@ -605,11 +660,14 @@
             const chart = echarts.init(document.getElementById(chartId));
 
             // Prepare the series data for each bus (V_id)
+            const busNames = data.names || {};
             var seriesData = [];
             for (let v_id in data.data) {
                 let busData = data.data[v_id];
                 seriesData.push({
-                    name: `Bus ${v_id}`, // Name for the legend
+                    // Database ids mean nothing to the user, so label with the short name the
+                    // backend derives from vehicle type, depot and a per-scenario counter
+                    name: busNames[v_id] || `Bus ${v_id}`,
                     type: 'line',
                     data: busData, // The actual time-series data for this bus
                     smooth: false
@@ -642,7 +700,10 @@
                     },
                     {
                         type: 'inside',
-                        filterMode: 'empty'
+                        filterMode: 'empty',
+                        // Leave the wheel to the page; the sliders and dragging still zoom
+                        zoomOnMouseWheel: false,
+                        moveOnMouseWheel: false
                     },
                     {
                         type: 'slider',
@@ -753,7 +814,10 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'empty'
+                            filterMode: 'empty',
+                            // Leave the wheel to the page; the sliders and dragging still zoom
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         }
                     ],
                     grid: {
@@ -848,51 +912,37 @@
     //shared utilities between the Gantt Plots:
     function prepareGanttData(ganttData){
         const vehicleMap = {};
-        const readableNameMap = {};
 
         ganttData.forEach(item => {
             const vehicleId = item.vehicle_id;
             const vehicleType = item.vehicle_type;
-            const startTime = item.start;
-
-            if (!readableNameMap[vehicleId]) {
-                readableNameMap[vehicleId] = item.name;
-            }
 
             if (!vehicleMap[vehicleId]) {
                 vehicleMap[vehicleId] = {
                     id: vehicleId,
                     type: vehicleType,
-                    minTime: startTime,
+                    // The backend computes name/number once (a row number over vehicles sorted
+                    // by type), so every chart that fetches the same gantt data agrees on them
+                    label: item.bus_name,
+                    busNumber: item.vehicle_number,
                     originalId: vehicleId
                 };
-
-            } else {
-                // Find the absolute minimum start time for the vehicle
-                if (startTime < vehicleMap[vehicleId].minTime) {
-                    vehicleMap[vehicleId].minTime = startTime;
-                }
             }
         });
 
         // Convert map to a sortable array
         const sortedVehicles = Object.values(vehicleMap);
 
-        // Sort: Primary key is Vehicle Type (alphabetical), secondary is Min Time
+        // Sort: Primary key is Vehicle Type (alphabetical), secondary is the backend's counter.
+        // That counter is already handed out in order of first activity, and sorting on it keeps
+        // the rows in the same order as their labels.
         sortedVehicles.sort((a, b) => {
             // Primary sort: Vehicle Type (Alphabetical)
             if (a.type < b.type) return -1;
             if (a.type > b.type) return 1;
 
             // Secondary sort: Earliest Start Time (Ascending)
-            return a.minTime - b.minTime;
-        });
-
-        //Construct y-axis lables
-        const typeCounters = {};
-        sortedVehicles.forEach(v => {
-            if (!typeCounters[v.type]) typeCounters[v.type] = 1; // start numbering at 1 per type
-            v.busNumber = typeCounters[v.type]++;
+            return (a.busNumber ?? 0) - (b.busNumber ?? 0);
         });
 
         const newIndexMap = sortedVehicles.reduce((map, v, index) => {
@@ -904,6 +954,7 @@
             item.originalVehicleId = item.vehicle_id; // keep the original ID
             const newIndex = newIndexMap[item.vehicle_id];
             item.vehicle = newIndex; // this is the Y-axis index for plotting
+            item.gantt_label = item.bus_name;
         });
 
         const totalVehicles = sortedVehicles.length;
@@ -935,20 +986,29 @@
             };
         });
 
+        // Keyed by the category value rather than array position: once the y axis is scrolled
+        // via dataZoom, the formatter's index argument is relative to the visible window, not
+        // the full vehicle list, so vehicles[index] resolved to the wrong vehicle for every row
+        // except whichever one currently sits at the top.
+        const vehicleByLabel = new Map(vehicles.map(v => [v.label, v]));
+
         return {
             type: 'category',
             inverse: true,
-            data: vehicles.map(v => `Bus ${v.busNumber}`),
+            // Category values have to be unique, which "Bus 1" was not once a second vehicle
+            // type started counting from 1 again. label is the backend's name, e.g. "Ebus 3".
+            data: vehicles.map(v => v.label),
             axisLabel: {
                 interval: 0,
-                formatter: function(value, index) {
-                    const vehicle = vehicles[index];
+                formatter: function(value) {
+                    const vehicle = vehicleByLabel.get(value);
                     if (!vehicle) return value;
 
                     const type = vehicle.type || 'Unknown';
                     const truncated = type.length > 15 ? type.slice(0, 15) + '…' : type;
 
-                    return `{${type}|${truncated}} ${value}`;
+                    // The badge already carries the type, so the visible text is just the number
+                    return `{${type}|${truncated}} ${vehicle.busNumber}`;
                 },
                 rich: rich
             },
@@ -1161,7 +1221,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
@@ -1281,7 +1345,7 @@
                         encode: {
                           x: [1, 2],
                           y: 0,
-                          itemName: 4
+                          itemName: 8
                         },
                         data: ganttData
                             .filter(d => d.event_type === eventType)
@@ -1293,7 +1357,8 @@
                                 d.vehicle_type,
                                 d.route_name,
                                 d.rotation_name,
-                                d.station_name
+                                d.station_name,
+                                d.gantt_label
                         ])
                     }))
                 };
@@ -1303,7 +1368,8 @@
                 chart._seriesNames = Object.keys(EVENT_COLORS);
                 chart._buildRow = d => [
                     d.vehicle, +new Date(d.start), +new Date(d.end),
-                    d.event_type, d.vehicle_type, d.route_name, d.rotation_name, d.station_name
+                    d.event_type, d.vehicle_type, d.route_name, d.rotation_name, d.station_name,
+                    d.gantt_label
                 ];
                 chart._filterRow = (d, name) => d.event_type === name;
                 createVehicleTypeFilter(
@@ -1403,7 +1469,8 @@
                     },
                     encode: {
                         x: [1, 2], // Start, End times
-                        y: 0       // Category index for vehicle
+                        y: 0,      // Category index for vehicle
+                        itemName: 9
                     },
                     data: ganttData.map(d => [
                         d.vehicle,                    // 0: y-axis category
@@ -1414,7 +1481,8 @@
                         d.vehicle_type,
                         d.route_name,
                         d.rotation_name,
-                        d.station_name
+                        d.station_name,
+                        d.gantt_label                  // 9: vehicle label
                     ])
                 };
                 const option = {
@@ -1432,7 +1500,11 @@
                         },
                         {
                             type: 'inside',
-                            filterMode: 'weakFilter'
+                            filterMode: 'weakFilter',
+                            // The wheel scrolls the rows vertically (see insideY below), it must
+                            // not also zoom the time axis
+                            zoomOnMouseWheel: false,
+                            moveOnMouseWheel: false
                         },
                         {
                             type: 'slider',
@@ -1551,7 +1623,8 @@
                 chart._seriesNames = [null];
                 chart._buildRow = d => [
                     d.vehicle, +new Date(d.start), +new Date(d.end),
-                    d.soc_start, d.soc_end, d.vehicle_type, d.route_name, d.rotation_name, d.station_name
+                    d.soc_start, d.soc_end, d.vehicle_type, d.route_name, d.rotation_name, d.station_name,
+                    d.gantt_label
                 ];
                 chart._filterRow = () => true;
                 createVehicleTypeFilter(
@@ -1732,27 +1805,39 @@
       .then((result) => {
         const rawData = result.data;
 
-        const xHours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+        // Absolute hours, not hour-of-day, so this lines up with the depot occupancy chart.
+        // The backend already limits them to the simulation window.
+        const xTimes = [...new Set(rawData.map(item => item.time))].sort();
         const yBins = ["<0", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"];
 
+        const formatHour = (iso) => {
+          const date = new Date(iso);
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+               + `${pad(date.getHours())}:00`;
+        };
+        const xLabels = xTimes.map(formatHour);
+
         // Fill in all (hour, soc_bin) combinations with 0 where missing
-        const dataMap = new Map(rawData.map(item => [`${item.hour}-${item.soc_bin}`, item.count]));
+        const dataMap = new Map(rawData.map(item => [`${item.time}-${item.soc_bin}`, item.count]));
         const fullData = [];
 
-        for (let h = 0; h < 24; h++) {
+        for (let h = 0; h < xTimes.length; h++) {
           for (let y = 0; y < yBins.length; y++) {
-            const key = `${h}-${yBins[y]}`;
+            const key = `${xTimes[h]}-${yBins[y]}`;
             const count = dataMap.get(key) || 0;
             fullData.push([h, y, count]);
           }
         }
+
+        const maxCount = fullData.reduce((acc, item) => Math.max(acc, item[2]), 0);
 
         const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
         const option = {
           tooltip: {
             position: 'top',
             formatter: params =>
-              `Stunde: ${xHours[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
+              `Zeit: ${xLabels[params.data[0]]}<br>SOC: ${yBins[params.data[1]]}%<br>Fahrzeuge: ${params.data[2]}`
           },
           title: { text: 'Anzahl Fahrzeuge nach SoC', left: 'center' },
           grid: {
@@ -1763,10 +1848,15 @@
           },
           xAxis: {
             type: 'category',
-            data: xHours,
+            data: xLabels,
             name: 'Zeit',
             nameLocation: 'middle',
-            nameGap: 25,
+            nameGap: 55,
+            axisLabel: {
+              // Thin the labels out, the axis now carries a full date per tick
+              interval: Math.max(0, Math.ceil(xLabels.length / 8) - 1),
+              rotate: 45
+            },
             axisLine: {
               lineStyle: {
                 color: '#000',
@@ -1783,7 +1873,7 @@
           },
           visualMap: {
             min: 0,
-            max: Math.max(...fullData.map(item => item[2])),
+            max: maxCount,
             calculable: true,
             orient: 'horizontal',
             left: 'center',
@@ -1810,17 +1900,7 @@
                 shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             }
-          }],
-          markLine: {
-            symbol: 'none',
-            lineStyle: {
-              color: '#000',
-              width: 2
-            },
-            data: [
-              { xAxis: 0 }  // Thicker vertical line at 0:00
-            ]
-          }
+          }]
         };
         chart.setOption(option);
       });
@@ -1844,6 +1924,10 @@
             "OTHER": "Sonstiges"
         };
 
+        // Money is always shown with exactly two decimals. minimumFractionDigits on its own
+        // leaves the maximum at three, which is where the stray third digit came from.
+        const formatEuro = (value) => formatNumber(value, 2);
+
         const categories = Object.keys(result);
         const translatedCategories = categories.map(key => labelMapping[key] || key);
 
@@ -1855,7 +1939,7 @@
             tooltip: {
                 trigger: 'item',
                 formatter: (params) => {
-                    const val = params.value.toLocaleString('de-DE', { minimumFractionDigits: 2 });
+                    const val = formatEuro(params.value);
                     return `
                         <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
                             ${params.name}
@@ -1892,7 +1976,7 @@
                     show: true,
                     position: 'inside',
                     // Only show value if it's large enough to fit inside the segment
-                    formatter: (params) => params.value > 0.02 ? params.value.toFixed(2) + ' €/km' : ''
+                    formatter: (params) => params.value > 0.02 ? formatEuro(params.value) + ' €/km' : ''
                 },
                 data: [result[key]]
             })),
@@ -1906,7 +1990,7 @@
                     show: true,
                     position: 'top',
                     distance: 15,
-                    formatter: () => `{title|Gesamt}\n{value|${totalCost.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €/km}`,
+                    formatter: () => `{title|Gesamt}\n{value|${formatEuro(totalCost)} €/km}`,
                     rich: {
                         title: { fontSize: 12, color: '#666', align: 'center' },
                         value: { fontSize: 16, fontWeight: 'bold', color: '#333', align: 'center', lineHeight: 25 }
@@ -1985,7 +2069,7 @@
                     grid: { left: '10%', right: '10%', bottom: '15%', containLabel: true },
                     xAxis: {
                         type: 'value',
-                        name: 'Energiebedarf (kWh)',
+                        name: 'Netto-Batteriegröße (kWh)',
                         nameLocation: 'middle',
                         nameGap: 35,
                         splitLine: { show: false }
@@ -2038,6 +2122,142 @@
             });
     }
 
+    let electrifiedStationData = [];
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+
+    const formatNumber = (value, digits = 0) => Number(value ?? 0).toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+    });
+
+    function loadElectrifiedStations(taskId) {
+        return fetch(`/simba/result/${taskId}/electrified_stations/`)
+            .then(response => response.json())
+            .then(result => {
+                electrifiedStationData = result.data || [];
+                const count = document.getElementById('electrifiedStationsCount');
+                if (count) count.textContent = electrifiedStationData.length.toLocaleString('de-DE');
+                renderElectrifiedStations(electrifiedStationData);
+            });
+    }
+
+    function renderElectrifiedStations(rows) {
+        const tbody = document.getElementById('electrifiedStationsBody');
+        if (!tbody) return;
+
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="px-4 py-6 text-center text-xs text-slate-500">
+                    Keine elektrifizierten Endhaltestellen in diesem Szenario.
+                </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr class="station-row cursor-pointer hover:bg-slate-50 transition-colors duration-75"
+                data-station-id="${row.station_id}"
+                onclick="selectStationRow(this, ${row.station_id}, ${row.lon}, ${row.lat})">
+                <td class="px-4 py-2 text-xs font-semibold text-slate-900 truncate" title="${escapeHtml(row.name)}">
+                    ${escapeHtml(row.name)}
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${row.chargers}</td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600"
+                    title="${row.charging_efficiency_pct
+                        ? `Spitze netzseitig, angenommen ${row.charging_efficiency_pct} % Ladeeffizienz`
+                        : ''}">
+                    ${formatNumber(row.power_installed)}&nbsp;kW
+                    <span class="block text-slate-400">Spitze ${formatNumber(row.power_peak)}&nbsp;kW</span>
+                </td>
+                <td class="px-4 py-2 text-xs text-right font-mono text-slate-600">${formatNumber(row.energy)}&nbsp;kWh</td>
+                <td class="px-4 py-2 text-xs text-slate-600">
+                    <div class="flex items-center justify-end gap-2">
+                        <span class="relative h-1.5 w-12 flex-none overflow-hidden rounded-full bg-slate-200">
+                            <span class="absolute inset-y-0 left-0 bg-emerald-500"
+                                  style="width: ${Math.min(100, row.utilization * 100).toFixed(0)}%"></span>
+                        </span>
+                        <span class="font-mono">${formatNumber(row.utilization * 100, 1)}&nbsp;%</span>
+                    </div>
+                    <span class="block text-right text-slate-400">
+                        &Oslash;&nbsp;${formatNumber(row.avg_concurrent, 1)} von ${row.chargers}
+                    </span>
+                </td>
+                <td class="px-4 py-2" title="${escapeHtml(row.lines)}">
+                    ${renderLineChips(row.lines)}
+                </td>
+            </tr>`).join('');
+    }
+
+    // At most four chips, then a count, so a stop on many lines cannot push the column wide
+    function renderLineChips(lines) {
+        const names = String(lines || '').split(',').map(name => name.trim()).filter(Boolean);
+        if (!names.length) return '<span class="text-xs text-slate-400">&ndash;</span>';
+
+        const chip = 'rounded px-1.5 font-mono text-[9.5px] font-semibold';
+        const shown = names.slice(0, 4).map(name =>
+            `<span class="${chip} border border-slate-300 text-slate-700">${escapeHtml(name)}</span>`
+        );
+        if (names.length > 4) {
+            shown.push(`<span class="${chip} bg-slate-100 text-slate-500">+${names.length - 4}</span>`);
+        }
+        return `<div class="flex flex-wrap gap-1">${shown.join('')}</div>`;
+    }
+
+    // An inset shadow rather than a border, so the row does not shift sideways when selected
+    const SELECTED_ROW_CLASSES = ['bg-emerald-50', 'shadow-[inset_3px_0_0_#10b981]'];
+
+    function selectStationRow(rowElement, stationId, lon, lat) {
+        document.querySelectorAll('#electrifiedStationsBody .station-row').forEach(row => {
+            row.classList.remove(...SELECTED_ROW_CLASSES);
+        });
+        rowElement.classList.add(...SELECTED_ROW_CLASSES);
+
+        if (typeof showStationOnMap === 'function') {
+            showStationOnMap(stationId, lon, lat);
+        }
+    }
+
+    // Shared by both result tables. The header query is scoped to the table being sorted: an
+    // unscoped one repaints every th.sortable on the page, so sorting one table stripped the
+    // sort arrow off the other.
+    const tableSortState = {};
+
+    function sortTableBy(tableId, column, rows, render) {
+        const state = tableSortState[tableId] || (tableSortState[tableId] = {column: '', direction: 1});
+        if (state.column === column) {
+            state.direction *= -1;
+        } else {
+            state.direction = 1;
+            state.column = column;
+        }
+
+        document.querySelectorAll(`#${tableId} th.sortable`).forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.column === column) {
+                th.classList.add(state.direction === 1 ? 'asc' : 'desc');
+            }
+        });
+
+        const sorted = [...rows].sort((a, b) => {
+            const valueA = a[column];
+            const valueB = b[column];
+            if (valueA == null) return 1;
+            if (valueB == null) return -1;
+            if (typeof valueA === 'string') {
+                return valueA.localeCompare(valueB, 'de-DE') * state.direction;
+            }
+            return (valueA - valueB) * state.direction;
+        });
+
+        render(sorted);
+    }
+
+    function sortStationsTable(column) {
+        sortTableBy('electrifiedStationsTable', column, electrifiedStationData, renderElectrifiedStations);
+    }
+
     function loadRotationTable(taskId) {
         fetch(`/simba/result/${taskId}/rotation_table/`)
             .then(response => response.json())
@@ -2048,8 +2268,6 @@
     }
 
     let rotationData = [];
-    let sortDirection = 1;
-    let currentSortColumn = '';
 
     function formatDuration(decimalHours) {
         const totalMinutes = Math.floor(decimalHours * 60);
@@ -2063,6 +2281,9 @@
     function renderTable(data) {
         const tbody = document.getElementById('rotationTableBody');
         if (!tbody) return;
+
+        const count = document.getElementById('rotationTableCount');
+        if (count) count.textContent = data.length.toLocaleString('de-DE');
 
         tbody.innerHTML = data.map(row => `
             <tr class="hover:bg-slate-50 transition-colors duration-75">
@@ -2081,34 +2302,10 @@
         `).join('');
     }
     function sortTable(column) {
-        if (currentSortColumn === column) {
-            sortDirection *= -1;
-        } else {
-            sortDirection = 1;
-            currentSortColumn = column;
-        }
-
-        document.querySelectorAll('th.sortable').forEach(th => {
-            th.classList.remove('asc', 'desc');
-            if (th.dataset.column === column) {
-                th.classList.add(sortDirection === 1 ? 'asc' : 'desc');
-            }
+        sortTableBy('rotationTable', column, rotationData, sorted => {
+            rotationData = sorted;
+            renderTable(rotationData);
         });
-
-        rotationData.sort((a, b) => {
-            let valA = a[column];
-            let valB = b[column];
-
-            if (valA == null) return 1;
-            if (valB == null) return -1;
-
-            if (typeof valA === 'string') {
-                return valA.localeCompare(valB) * sortDirection;
-            }
-            return (valA - valB) * sortDirection;
-        });
-
-        renderTable(rotationData);
     }
 
 
@@ -2128,13 +2325,14 @@
 
         fetchAndRenderStats("stats", "_", "_"),
         fetchAndRenderGanttChart("gantt","ganttChart","_"),
-        fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
-        fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
+        // fetchAndRenderStackedHistogram("dist_histogram", "DistHistogramChart", "Verteilung Umlaufdistanzen"),
+        // fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
         fetchAndRenderTCOBars('tco', 'tco-bar'),
 	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
-        loadRotationTable(taskIdAvg)
+        loadRotationTable(taskIdAvg),
+        loadElectrifiedStations(taskIdAvg)
         ];
 
         Promise.allSettled(chartPromises).then((results)=>{
@@ -2462,19 +2660,4 @@ switchCostsTab('costs-tab-1');
   });
 </script>
 
-<script>
-  /* tabs in map popups functionality */
-  function openTab(e, tab_id) {
-    let tab_contents = document.getElementsByClassName("tab-pane");
-    for (let content of tab_contents) {
-      content.style.display = "none";
-    }
-    let tab_links = document.getElementsByClassName("tab-link");
-    for (let tab_link of tab_links) {
-      tab_link.classList.remove("active");
-    }
-    document.getElementById("tab-" + tab_id).style.display = "block";
-    e.currentTarget.classList.add("active");
-  }
-</script>
 {% endblock script %}

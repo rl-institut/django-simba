@@ -1943,6 +1943,8 @@ def get_binned_soc_data(request, task_id: str):
     """
     Returns binned SOC histogram data over time, forward-filled to hourly resolution,
     ensuring one (the lowest) SOC entry per vehicle per hour.
+    Hours are absolute timestamps limited to the simulation window, so each count is a number of
+    vehicles at that hour rather than a sum across the simulated days.
     """
     permission = AuthorizedMixIn.get_permission(request.user, task_id)
     if not permission:
@@ -1954,6 +1956,42 @@ def get_binned_soc_data(request, task_id: str):
     elif file_format == "csv":
         return HttpResponse(df.to_csv(index=False), content_type="text/csv")
     return HttpResponse(status=400)
+
+
+def get_electrified_stations_data(request, task_id: str):
+    """
+    Returns one row per electrified terminus stop: the lines it serves, its number of charging
+    points, installed and peak power, energy delivered, and the average utilization of those
+    points over the simulated period.
+    """
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    file_format = request.GET.get("format", "json").lower()
+    df = data.get_electrified_stations(task_id)
+    if file_format == "json":
+        return JsonResponse({"data": df.to_dict(orient="records")}, safe=True)
+    elif file_format == "csv":
+        # The database id and the coordinates are only there so a table row can drive the map;
+        # they are noise in a file a planner opens
+        export = df.drop(columns=["station_id", "lon", "lat"], errors="ignore")
+        return HttpResponse(export.to_csv(index=False), content_type="text/csv")
+    return HttpResponse(status=400)
+
+
+def get_station_load(request, station_id: int):
+    """
+    Returns the load profile of one charging station: the mean occupancy of its charging points
+    and the mean grid-side power drawn, both in 60 minute bins. Fetched by the map popup on
+    demand.
+    """
+    station = get_object_or_404(Station.objects.select_related("scenario"), id=station_id)
+    scenario = station.scenario
+    permission = AuthorizedMixIn.get_permission(request.user, scenario.task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    load_data = data.get_station_load_profile(station)
+    return JsonResponse({"data": load_data}, safe=True)
 
 
 def get_power_draw(request, task_id: str):

@@ -5,10 +5,11 @@ This way data should be easily swappable, while the dash_layout allows for swapp
 
 import logging
 import datetime
+import itertools
 
 import numpy as np
 import sqlalchemy
-from django.db.models import Prefetch, Sum, F, FloatField, ExpressionWrapper, Max, Min
+from django.db.models import Prefetch, Sum, F, FloatField, ExpressionWrapper, Max, Min, Q
 from django.db.models.functions import Coalesce, Extract
 from django.utils.translation import gettext as _
 from sqlalchemy.orm import Session
@@ -39,6 +40,8 @@ MAX_SIZE = 10
 # stores scenario_id and finished time
 last_simulations = list()
 CRITICAL_SOC = 0.0
+# Grid the station power series is sampled on, before the load profile bins it
+LOAD_RESOLUTION = 60
 logger = logging.getLogger("custom")
 
 
@@ -154,6 +157,73 @@ def get_rotation_dictionaries(scenario_id: int) -> tuple[dict, dict]:
 
     assert len(rotation_name_dict) == len(rotation_name_dict_reverse)
     return rotation_name_dict, rotation_name_dict_reverse
+
+
+def get_vehicle_display_names(scenario_id: int) -> dict[int, dict]:
+    """Short, descriptive labels for the vehicles of a scenario.
+
+    Database ids carry no meaning outside the database, so the result charts label a vehicle with
+    its vehicle type and a number. Vehicles are sorted by type (and, within a type, by order of
+    first activity) and then numbered via a row number over that sorted list, restarting at 1 for
+    every vehicle type. Computing this once here, rather than separately per chart, is what keeps
+    every chart's labels for the same vehicle in agreement.
+
+    :param scenario_id: The id of the scenario the vehicles belong to.
+    :return: ``{vehicle_id: {"name", "vehicle_type", "depot", "number"}}``
+    """
+    vehicles = list(Vehicle.objects.filter(scenario_id=scenario_id).select_related("vehicle_type"))
+
+    # A vehicle is stationed wherever it parks, which is the depot owning its area events. In
+    # practice that is a single depot per vehicle; if it ever is not, take the first by name so
+    # the label stays stable between requests. Informational only - it does not factor into the
+    # numbering below, which is keyed on vehicle type alone.
+    depot_by_vehicle: dict[int, str] = {}
+    depot_rows = sorted(
+        Event.objects.filter(scenario_id=scenario_id)
+        .exclude(area=None)
+        .exclude(vehicle=None)
+        .values_list("vehicle_id", "area__depot__name_short", "area__depot__name")
+        .distinct(),
+        key=lambda row: (row[0], str(row[1] or row[2] or "")),
+    )
+    for vehicle_id, depot_short, depot_name in depot_rows:
+        depot_by_vehicle.setdefault(vehicle_id, depot_short or depot_name or "")
+
+    first_activity = {
+        row["vehicle_id"]: row["first_start"]
+        for row in Event.objects.filter(scenario_id=scenario_id)
+        .exclude(vehicle=None)
+        .values("vehicle_id")
+        .annotate(first_start=Min("time_start"))
+    }
+
+    def type_name_of(vehicle: Vehicle) -> str:
+        vt = vehicle.vehicle_type
+        return str(vt.name_short or vt.name)
+
+    def sort_key(vehicle: Vehicle):
+        started = first_activity.get(vehicle.id)
+        return (
+            type_name_of(vehicle),
+            # Vehicles without a single event sort last, but still deterministically
+            (started is None, started or datetime.datetime.min),
+            vehicle.id,
+        )
+
+    display_names: dict[int, dict] = {}
+    for type_name, vehicles_of_type in itertools.groupby(
+        sorted(vehicles, key=sort_key), key=type_name_of
+    ):
+        # Row number over the sorted list, restarting at 1 for every vehicle type
+        for number, vehicle in enumerate(vehicles_of_type, start=1):
+            display_names[vehicle.id] = {
+                "name": f"{type_name} {number}",
+                "vehicle_type": type_name,
+                "depot": depot_by_vehicle.get(vehicle.id, ""),
+                "number": number,
+            }
+
+    return display_names
 
 
 def get_vehicle_dictionaries(scenario_id: int) -> tuple[dict, dict]:
@@ -685,7 +755,8 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
                         "time_start": time_start,
                         "time_end": time_end,
                         "Power": energy / ((time_end - time_start).total_seconds() / 3600),
-                        "Station_id": stations_name_short_dict.get(station.id),
+                        "Station_id": station.id,
+                        "Station": stations_name_short_dict.get(station.id),
                     }
                 )
                 # Disconnection of vehicle after event. Copy last event and change power
@@ -705,12 +776,55 @@ def get_all_powerdraw(scenario_id) -> pd.DataFrame:
                 "V_id": [None],
                 "time_end": [None],
                 "time_start": [None],
+                "Power": [],
                 "Energy": [None],
                 "Station_id": [None],
+                "Station": [],
             }
         )
 
     return result_df
+
+
+def station_power_series(
+    session, station_id, sim_start, sim_end, resolution_seconds=LOAD_RESOLUTION
+):
+    """Power drawn at one station over the simulated period, from eflips-eval.
+
+    Always asked for at a fine resolution and aggregated by the caller, never at the resolution
+    it will be displayed at. power_and_occupancy resamples onto a grid of exactly the resolution
+    given, so a six-minute charging event asked for at 3600s falls between grid points and its
+    peak simply is not in the result: the same station reads 519 kW hourly, 590 kW at 300s and
+    713 kW at 60s. Its occupancy has a sharper edge still - it builds the occupied interval as
+    [time_start, time_end - resolution], which inverts for any event shorter than one step and
+    silently yields zero, so occupancy is taken from the events themselves (occupancy_metrics)
+    rather than from here.
+
+    :param session: An open sqlalchemy session.
+    :param station_id: The station to report on.
+    :param sim_start: Start of the simulated period.
+    :param sim_end: End of the simulated period.
+    :param resolution_seconds: Grid the underlying series is sampled on.
+    :return: Power in kW indexed by time, empty if nothing charged there.
+    """
+    try:
+        frame = power_and_occupancy(
+            [],
+            session,
+            temporal_resolution=resolution_seconds,
+            station_id=station_id,
+            sim_start_time=sim_start,
+            sim_end_time=sim_end,
+        )
+    except ValueError:
+        # power_and_occupancy raises rather than returning an empty frame when the station has no
+        # events at all in the database (not just none in [sim_start, sim_end]) - an electrified
+        # terminus a run never ended up using, for example. That is exactly the "nothing charged
+        # there" case this function promises to return empty for, so treat it the same way.
+        return pd.Series(dtype=float)
+    if frame.empty:
+        return pd.Series(dtype=float)
+    return pd.Series(frame["power"].to_numpy(), index=pd.DatetimeIndex(frame["time"]))
 
 
 def sim_is_finished(task_id: str) -> bool:
@@ -749,7 +863,13 @@ def get_soc_as_json(task_id: str) -> dict:
         )
         .to_dict()
     )
-    return {"data": soc_data}
+    # The chart keys its series by vehicle id, so ship the labels alongside rather than renaming
+    # the keys and losing the link back to the database row.
+    names = {
+        vehicle_id: display["name"]
+        for vehicle_id, display in get_vehicle_display_names(s.id).items()
+    }
+    return {"data": soc_data, "names": names}
 
 
 def get_binned_soc(task_id: str) -> pd.DataFrame:
@@ -794,8 +914,15 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
     # drop initial hours where we never had a reading
     df_filled = df_filled.dropna(subset=["soc_end"])
 
-    # extract hour‐of‐day and bucket into 10% SOC bins
-    df_filled["hour"] = df_filled["timestamp"].dt.hour
+    # Restrict to the simulation window, the same one the depot occupancy chart uses. The events
+    # span more than the schedule itself, because eflips simulates a period before and after it to
+    # reach a steady state, and those padding days are not a result worth plotting. The resample
+    # and ffill above deliberately run on the full range, so a vehicle whose last reading predates
+    # the window still carries its SOC into it.
+    time_start, time_end = get_start_end_time(scenario)
+    df_filled = df_filled[
+        df_filled["timestamp"].between(pd.Timestamp(time_start).floor("h"), pd.Timestamp(time_end))
+    ].copy()
 
     def soc_bin(soc):
         if soc < 0:
@@ -805,10 +932,14 @@ def get_binned_soc(task_id: str) -> pd.DataFrame:
 
     df_filled["soc_bin"] = df_filled["soc_end"].apply(soc_bin)
 
-    # build the histogram: one count per vehicle‐hour in its lowest‐SOC bin
-    heatmap_data = df_filled.groupby(["hour", "soc_bin"]).size().reset_index(name="count")
+    # The reindex above puts every vehicle on exactly one row per hour, so each count is a number
+    # of vehicles. Hours stay absolute instead of being folded onto a 24h axis, which keeps this
+    # comparable to the depot occupancy chart and stops the ~03:00 start of the operating day from
+    # wrapping the night onto both edges of the plot.
+    heatmap_data = df_filled.groupby(["timestamp", "soc_bin"]).size().reset_index(name="count")
+    heatmap_data["time"] = heatmap_data["timestamp"].apply(lambda t: t.isoformat())
 
-    return heatmap_data
+    return heatmap_data[["time", "soc_bin", "count"]]
 
 
 def get_power_draw(request, task_id: str) -> list:
@@ -971,6 +1102,393 @@ def get_stats(task_id: str) -> dict:
     return resp
 
 
+def occupancy_metrics(intervals: list, window_seconds: float, configured_places) -> dict:
+    """Occupancy of one station's charging points over the simulated period.
+
+    :param intervals: ``(time_start, time_end)`` of every charging event at the station.
+    :param window_seconds: Length of the simulated period.
+    :param configured_places: ``amount_charging_places``, or None where no limit was set.
+    :return: ``{"chargers", "peak", "avg_concurrent", "utilization"}``
+    """
+    timeline = sorted(
+        [(start, 1) for start, unused_end in intervals]
+        + [(end, -1) for unused_start, end in intervals]
+    )
+    concurrent = 0
+    peak = 0
+    for unused_time, delta in timeline:
+        concurrent += delta
+        peak = max(peak, concurrent)
+
+    # Without a configured limit the station has to be built for its busiest moment
+    chargers = configured_places or peak
+    occupied_seconds = sum((end - start).total_seconds() for start, end in intervals)
+    avg_concurrent = occupied_seconds / window_seconds if window_seconds else 0.0
+
+    return {
+        "chargers": chargers,
+        "peak": peak,
+        "avg_concurrent": avg_concurrent,
+        "utilization": avg_concurrent / chargers if chargers else 0.0,
+    }
+
+
+def station_charging_events_overlap(station, time_start, time_end):
+    """The charging events at one station, overlapping with the time period.
+
+    A depot's buses charge on an area belonging to the depot rather than at the station itself, so
+    a depot station has to be looked up through its areas and by the other event type.
+
+    :param station: The station whose charging events are wanted.
+    :param time_start: Start of the simulated period.
+    :param time_end: End of the simulated period.
+    """
+    window = (
+        # start and end inside the period
+        Q(time_start__gte=time_start, time_end__lte=time_end)
+        # start before the period, end after the period starts
+        | Q(time_start__lt=time_start, time_end__gt=time_start)
+        # start inside the period, end after the period ends
+        | Q(time_start__gte=time_start, time_start__lte=time_end, time_end__gt=time_end)
+    )
+    if station.charge_type == EnumChargeType.DEPOT:
+        return station.scenario.event_set.filter(
+            window, event_type=EventType.CHARGING_DEPOT, area__depot__station=station
+        ).select_related("vehicle_type", "area__depot")
+    return station.scenario.event_set.filter(
+        window, event_type=EventType.CHARGING_OPPORTUNITY, station=station
+    ).select_related("vehicle_type")
+
+
+def station_charging_events(station, time_start, time_end):
+    """The charging events at one station, within the simulated period.
+
+    A depot's buses charge on an area belonging to the depot rather than at the station itself, so
+    a depot station has to be looked up through its areas and by the other event type.
+
+    :param station: The station whose charging events are wanted.
+    :param time_start: Start of the simulated period.
+    :param time_end: End of the simulated period.
+    """
+    window = {"time_start__gte": time_start, "time_end__lte": time_end}
+    if station.charge_type == EnumChargeType.DEPOT:
+        return station.scenario.event_set.filter(
+            event_type=EventType.CHARGING_DEPOT, area__depot__station=station, **window
+        ).select_related("vehicle_type", "area__depot")
+    return station.scenario.event_set.filter(
+        event_type=EventType.CHARGING_OPPORTUNITY, station=station, **window
+    ).select_related("vehicle_type")
+
+
+def grid_side_power(battery_side_kw, efficiencies) -> tuple:
+    """Put a power figure read off the stored SoC back on the grid side.
+
+    eflips-eval derives power from the SoC, and the SoC is what arrived in the battery, so its
+    figures are battery-side: at 0.95 efficiency a 300 kW charger running flat out reads 285 kW.
+    Reported next to the installed connection that would look like 5% of headroom that does not
+    exist, so it is divided back out and the assumption named wherever the figure is shown.
+
+    The efficiency belongs to the vehicle type rather than to the station, so a stop served by
+    several types has no single right answer. The lowest is divided out, because it gives the
+    highest grid-side power and a connection sized on the conservative reading is the one that
+    holds, and the label carries the whole range so the reader can see it was not one number.
+
+    :param battery_side_kw: Power as eflips-eval reports it, a single figure or a whole series.
+    :param efficiencies: Charging efficiencies of the vehicle types charging there.
+    :return: ``(grid_side, label)`` in the shape it was given, where the label reads "95" or
+        "90-95" in percent, and is None if nothing charged there.
+    """
+    usable = sorted({efficiency for efficiency in efficiencies if efficiency})
+    if not usable:
+        return battery_side_kw, None
+    percentages = [f"{efficiency * 100:g}" for efficiency in (usable[0], usable[-1])]
+    label = percentages[0] if usable[0] == usable[-1] else "–".join(percentages)
+    return battery_side_kw / usable[0], label
+
+
+def get_station_summary(station) -> dict:
+    """The figures the map popup shows for one electrified station.
+
+    Same definitions as :func:`get_electrified_stations`, for a single station, so the popup and
+    the table below the map cannot drift apart.
+    """
+    scenario = station.scenario
+    time_start, time_end = get_start_end_time(scenario)
+    window_seconds = (time_end - time_start).total_seconds()
+
+    events = list(station_charging_events_overlap(station, time_start, time_end))
+    energy = 0
+    Event.objects.filter(
+        event_type__in=[EventType.CHARGING_DEPOT, EventType.CHARGING_OPPORTUNITY], station=station
+    )
+
+    intervals = []
+    for event in events:
+        full_duration = event.time_end - event.time_start
+        start = max(event.time_start, time_start)
+        end = min(event.time_end, time_end)
+        duration_in_timespan = end - start
+        # assume constant charge to keep it simple
+        # only partially apply energy if event is not completely inside simulation timeframe
+        energy += (
+            (event.soc_end - event.soc_start)
+            * event.vehicle_type.battery_capacity
+            * duration_in_timespan
+            / full_duration
+        )
+
+        intervals.append((start, end))
+
+    metrics = occupancy_metrics(intervals, window_seconds, station.amount_charging_places)
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        profile = station_power_series(session, station.id, time_start, time_end)
+
+    power_peak, efficiency_pct = grid_side_power(
+        float(profile.max()) if not profile.empty else 0.0,
+        {event.vehicle_type.charging_efficiency for event in events},
+    )
+
+    # Asked of Route, not Trip: every trip on a route shares that route's terminus and line, so
+    # going through Trip scans every trip in the scenario to produce the same handful of names
+    lines = sorted(
+        {
+            str(name)
+            for name in Route.objects.filter(scenario=scenario, arrival_station=station)
+            .exclude(line=None)
+            .values_list("line__name", flat=True)
+            .distinct()
+        }
+    )
+
+    return {
+        "chargers": metrics["chargers"],
+        "power_installed": round((station.power_per_charger or 0.0) * metrics["chargers"], 1),
+        "power_peak": round(power_peak, 1),
+        "charging_efficiency_pct": efficiency_pct,
+        "energy": round(energy, 1),
+        "utilization": round(metrics["utilization"], 4),
+        "utilization_pct": round(metrics["utilization"] * 100, 1),
+        "avg_concurrent": round(metrics["avg_concurrent"], 2),
+        "arrivals": len(intervals),
+        "lines": lines,
+    }
+
+
+def get_station_load_profile(station, bin_minutes: int = 60) -> list[dict]:
+    """The station's load over the simulated period, in fixed bins.
+
+    Both series are means over the bin, which is what makes them readable side by side: mean
+    power is proportional to the energy delivered in that hour, so it rises and falls with the
+    occupancy next to it. The highest power reached in the bin does not - it saturates at what a
+    single bus draws on the flat part of its charging curve, so a quiet night hour with one empty
+    bus outreads a packed hour of short top-ups at high SoC, and the two series then tell
+    opposite stories. The peak worth sizing a connection to is the one over the whole period,
+    which :func:`get_station_summary` reports.
+
+    Bins with no charging are kept so the time axis stays continuous.
+
+    :param station: The station to profile.
+    :param bin_minutes: Width of one bin in minutes.
+    :return: ``[{"time", "utilization", "power"}]`` ordered by time. The power is grid-side, on
+        the same footing as the peak the popup quotes above the chart, and the popup names the
+        efficiency that was assumed to get there.
+    """
+    scenario = station.scenario
+    time_start, time_end = get_start_end_time(scenario)
+    bin_size = pd.Timedelta(minutes=bin_minutes)
+
+    # contains all events which overlap with the interval
+    charging_events = list(station_charging_events_overlap(station, time_start, time_end))
+    # Clip the event times to the scenario duration
+    events = []
+    for e in charging_events:
+        start = max(e.time_start, time_start)
+        end = min(e.time_end, time_end)
+        events.append((start, end))
+
+    metrics = occupancy_metrics(
+        events, (time_end - time_start).total_seconds(), station.amount_charging_places
+    )
+    chargers = metrics["chargers"]
+
+    bins = pd.date_range(
+        pd.Timestamp(time_start).floor(f"{bin_minutes}min"), pd.Timestamp(time_end), freq=bin_size
+    )
+
+    # Occupancy is time-weighted over the bin, because "how busy was this hour" is a mean, and it
+    # is taken from the events rather than from the sampled series (see station_power_series)
+    bin_starts = bins.astype("int64").to_numpy() / 1e9
+    bin_ends = bin_starts + bin_size.total_seconds()
+    if events:
+        starts = np.array([start.timestamp() for start, unused_end in events])
+        ends = np.array([end.timestamp() for unused_start, end in events])
+        overlap = np.clip(
+            np.minimum(ends[None, :], bin_ends[:, None])
+            - np.maximum(starts[None, :], bin_starts[:, None]),
+            0,
+            None,
+        )
+        occupied = overlap.sum(axis=1)
+    else:
+        occupied = np.zeros(len(bins))
+
+    utilization = occupied / (chargers * bin_size.total_seconds()) if chargers else occupied * 0.0
+
+    # Grid-side, so the curve and the peak quoted above it are the same figure (grid_side_power)
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        profile = station_power_series(session, station.id, time_start, time_end)
+    efficiencies = {event.vehicle_type.charging_efficiency for event in charging_events}
+    scaled, unused_label = grid_side_power(profile, efficiencies)
+
+    if scaled.empty:
+        power_per_bin = pd.Series(0.0, index=bins)
+    else:
+        # Summed rather than averaged: the series runs from the first charge of the day to the
+        # last, so a mean would divide a half-covered bin by the samples it has instead of the
+        # samples a whole hour has, and read as busier than it was. Summing counts the hours
+        # either side of the working day as the 0 kW they were.
+        power_per_bin = (
+            (scaled.resample(bin_size, origin=bins[0]).sum() * LOAD_RESOLUTION)
+            .div(bin_size.total_seconds())
+            .reindex(bins)
+            .fillna(0.0)
+        )
+
+    return [
+        {
+            "time": bin_start.isoformat(),
+            "utilization": round(float(util), 4),
+            "power": round(float(power), 1),
+        }
+        for bin_start, util, power in zip(bins, utilization, power_per_bin.to_numpy())
+    ]
+
+
+def get_electrified_stations(task_id: str) -> pd.DataFrame:
+    """One row per electrified terminus stop.
+
+    Terminus electrification is modelled as opportunity charging, so every opportunity charging
+    station is an electrified terminus. The number of charging points is whatever the operator
+    configured; where that was left open, it is the peak number of buses charging there at the
+    same time, which is the number the station has to be built for.
+
+    Two power figures are reported, because they answer different questions and differ a lot.
+    ``power_installed`` is the nameplate capacity that has to be built, charging points times the
+    power of one. ``power_peak`` is the highest draw the simulation actually produced, taken from
+    the recorded soc samples rather than from per-event averages, so it is the diversified load a
+    grid connection would be negotiated on.
+
+    ``utilization`` is the mean number of occupied charging points over the available ones. Since
+    the count of charging points is itself the peak occupancy wherever the operator set no limit,
+    it is then a mean-over-peak load factor: it cannot reach 100%, and a low value means arrivals
+    are peaky rather than that a charging point could be dropped. ``avg_concurrent`` is the same
+    figure before dividing, i.e. the average number of buses charging here.
+
+    :param task_id: The task id of the (simulated) scenario.
+    :return: One row per terminus with its lines, charging points, power, energy and occupancy.
+    """
+    scenario = Scenario.objects.get(task_id=task_id)
+    time_start, time_end = get_start_end_time(scenario)
+    window_seconds = (time_end - time_start).total_seconds()
+
+    opp_stations = scenario.station_set.filter(charge_type=EnumChargeType.OPPORTUNITY)
+
+    # Fetched once and reused: the sample expansion below needs the same rows, and reading them a
+    # second time through a values_list only to re-derive energy is a wasted pass over the events
+    charging_events = list(
+        scenario.event_set.filter(
+            event_type=EventType.CHARGING_OPPORTUNITY,
+            time_start__gte=time_start,
+            time_end__lte=time_end,
+        )
+        .exclude(station=None)
+        .select_related("vehicle_type")
+    )
+    events_by_station: dict[int, list] = {}
+    energy_by_station: dict[int, float] = {}
+    efficiencies_by_station: dict[int, set] = {}
+    for event in charging_events:
+        events_by_station.setdefault(event.station_id, []).append(
+            (event.time_start, event.time_end)
+        )
+        energy = (event.soc_end - event.soc_start) * event.vehicle_type.battery_capacity
+        energy_by_station[event.station_id] = energy_by_station.get(event.station_id, 0.0) + energy
+        efficiencies_by_station.setdefault(event.station_id, set()).add(
+            event.vehicle_type.charging_efficiency
+        )
+
+    # Which lines terminate here. This is what makes a stop worth electrifying, so it answers
+    # "what breaks if this one is skipped".
+    lines_by_station: dict[int, set] = {}
+    for station_id, line_name in (
+        Route.objects.filter(scenario=scenario)
+        .exclude(line=None)
+        .values_list("arrival_station_id", "line__name")
+        .distinct()
+    ):
+        lines_by_station.setdefault(station_id, set()).add(str(line_name))
+
+    # One session for all of them; power_and_occupancy sums the stations it is given rather than
+    # reporting them separately, so each terminus is asked for on its own
+    peak_power_by_station: dict[int, float] = {}
+    with Session(SqlAlchemyEngine.get_engine()) as session:
+        for station in opp_stations:
+            profile = station_power_series(session, station.id, time_start, time_end)
+            if not profile.empty:
+                peak_power_by_station[station.id] = float(profile.max())
+
+    records = []
+    for station in opp_stations:
+        events = events_by_station.get(station.id, [])
+        metrics = occupancy_metrics(events, window_seconds, station.amount_charging_places)
+        chargers = metrics["chargers"]
+        power_peak, efficiency_pct = grid_side_power(
+            peak_power_by_station.get(station.id, 0.0),
+            efficiencies_by_station.get(station.id, set()),
+        )
+
+        records.append(
+            {
+                "station_id": station.id,
+                "name": station.name,
+                # Joined rather than a list so the CSV export stays readable; the table splits
+                # it again to draw one chip per line
+                "lines": ", ".join(sorted(lines_by_station.get(station.id, set()))),
+                "chargers": chargers,
+                "power_installed": round((station.power_per_charger or 0.0) * chargers, 1),
+                "power_peak": round(power_peak, 1),
+                "charging_efficiency_pct": efficiency_pct,
+                "energy": round(energy_by_station.get(station.id, 0.0), 1),
+                "utilization": round(metrics["utilization"], 4),
+                "avg_concurrent": round(metrics["avg_concurrent"], 2),
+                "arrivals": len(events),
+                # So a row in the table can point the map at its stop
+                "lon": station.geom.x if station.geom else None,
+                "lat": station.geom.y if station.geom else None,
+            }
+        )
+
+    df = pd.DataFrame(
+        records,
+        columns=[
+            "station_id",
+            "name",
+            "lines",
+            "chargers",
+            "power_installed",
+            "power_peak",
+            "charging_efficiency_pct",
+            "energy",
+            "utilization",
+            "avg_concurrent",
+            "arrivals",
+            "lon",
+            "lat",
+        ],
+    )
+    return df.sort_values("name").reset_index(drop=True)
+
+
 def get_speed_hist(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     vehicle_name_dict, unused_variable = get_all_buses_labeled(task_id)
@@ -1103,10 +1621,14 @@ def get_gantt(scenario_id: str) -> pd.DataFrame:
         )
     )
 
+    display_names = get_vehicle_display_names(scenario_id)
+
     records = []
     for event in events:
         vehicle_id = event.vehicle.id
-        vehicle_type_name = event.vehicle.vehicle_type.name
+        display = display_names.get(vehicle_id, {})
+        # Fall back to the long type name only if the vehicle somehow has no label
+        vehicle_type_name = display.get("vehicle_type") or event.vehicle.vehicle_type.name
 
         if event.trip:
             rotation_id = event.trip.rotation.id if event.trip.rotation else None
@@ -1121,7 +1643,9 @@ def get_gantt(scenario_id: str) -> pd.DataFrame:
             {
                 "vehicle_id": vehicle_id,
                 "vehicle_type": vehicle_type_name,
-                "bus_name": vehicle_id,
+                "bus_name": display.get("name", str(vehicle_id)),
+                "vehicle_number": display.get("number"),
+                "depot": display.get("depot", ""),
                 "start": event.time_start.isoformat(),
                 "end": event.time_end.isoformat(),
                 "soc_start": event.soc_start,
@@ -1180,7 +1704,8 @@ def get_cumulative_energy(task_id: str) -> dict:
 
 
 def get_rotation_table_data(task_id: str) -> pd.DataFrame:
-    rotations = Rotation.objects.filter(scenario__task_id=task_id).annotate(
+    scenario = Scenario.objects.get(task_id=task_id)
+    rotations = Rotation.objects.filter(scenario=scenario).annotate(
         max_soc=Max("trip__event__soc_start"),
         min_soc=Min("trip__event__soc_end"),
         cap=Max("vehicle_type__battery_capacity"),
@@ -1188,6 +1713,9 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
         start_t=Min("trip__departure_time"),
         end_t=Max("trip__arrival_time"),
     )
+
+    # Same name the Gantt charts use for a vehicle, so a bus reads the same way in both places
+    display_names = get_vehicle_display_names(scenario.id)
 
     rows = []
     for r in rotations:
@@ -1205,11 +1733,15 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
         if r.start_t and r.end_t:
             duration_h = (r.end_t - r.start_t).total_seconds() / 3600.0
 
+        vehicle_type_name = r.vehicle_type.name_short or r.vehicle_type.name
+        # A rotation isn't assigned to a specific vehicle until after simulation
+        vehicle_name = display_names.get(r.vehicle_id, {}).get("name", vehicle_type_name)
+
         rows.append(
             {
                 "id": r.id,
                 "name": r.name or f"ID: {r.id}",
-                "vehicle": r.vehicle_type.name_short or r.vehicle_type.name,
+                "vehicle": vehicle_name,
                 "distance": round(dist_km, 2),
                 "consumption": round(energy_kwh, 2),
                 "efficiency": round(efficiency, 3),
