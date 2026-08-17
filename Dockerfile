@@ -34,6 +34,7 @@ ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
 # The django user does not get write access to the starscripts, but they are made executable
 COPY ./start /start
+COPY ./start /start_foo
 COPY ./start_celery /start_celery
 RUN sed -i 's/\r$//g' /start /start_celery && chmod +x /start /start_celery
 
@@ -53,6 +54,10 @@ RUN mkdir -p /app/logs /app/media /app/staticfiles /app/media/uploads \
     && touch /app/logs/info.log \
     && chown -R django:django /app/logs /app/media /app/staticfiles /app/media/uploads
 
+# Make /app $HOME. so packages who want to write to $HOME, dont try to directories without write permission
+ENV HOME=/app
+ENV XDG_CACHE_HOME=/app/.cache
+#
 # Install dependencies
 RUN chown django:django /app
 

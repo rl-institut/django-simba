@@ -40,6 +40,7 @@ WORKDIR /app
 # Install dependencies
 # Since ebustoolbox and mapengine are installed as well, copy whole directory first
 COPY . /app
-RUN poetry install --no-interaction
+RUN poetry config virtualenvs.in-project false \
+    && poetry install --no-interaction
 #startup_command=poetry run python -c 'print(\"Started\")' && poetry run python manage.py makemigrations && poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000
 CMD ${STARTUP_COMMAND}
