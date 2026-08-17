@@ -2936,10 +2936,6 @@ msgstr ""
 "          "
 
 #: core/templates/core/index.html:22
-#, fuzzy
-#| msgid ""
-#| "WeBus - Die digitale Plattform für Flottenanalyse und "
-#| "Ladeinfrastrukturplanung"
 msgid "WeBus - Die Plattform für Flottenanalyse und Ladeinfrastrukturplanung"
 msgstr ""
 "WeBus - The digital platform for fleet analysis and charging infrastructure "
@@ -2981,11 +2977,6 @@ msgid "Einfache Bedienung"
 msgstr "Simple operation"
 
 #: core/templates/core/index.html:112
-#, fuzzy
-#| msgid ""
-#| "Die Website leitet Schritt-für-Schritt durch den Simulationsprozess. Für "
-#| "alle nötigen Eingangsparameter sind Default-Werte vorhanden. Experten-"
-#| "Wissen ist nicht notwendig."
 msgid ""
 "WeBus leitet dich Schritt-für-Schritt durch den Simulationsprozess. Für alle "
 "Eingangsparameter sind Default-Werte hinterlegt, die du nach Belieben "
@@ -3000,12 +2991,6 @@ msgid "Vielfältige Eingangsdaten"
 msgstr "Diverse input data"
 
 #: core/templates/core/index.html:126
-#, fuzzy
-#| msgid ""
-#| "Es besteht die Möglichkeit, Busfahrpläne in verschiedenen Formaten "
-#| "hochzuladen, z.B. als einfache .csv Tabelle oder VDV-Konform als .x10. "
-#| "Alternativ bieten wir offene Szenarien an, die aus Fahrplandaten (GTFS) "
-#| "erstellt wurden."
 msgid ""
 "Busfahrpläne kannst du in verschiedenen Formaten hochzuladen, z.B. als "
 "einfache .csv Tabelle oder VDV-konform als .x10. Alternativ bietet WeBus "
@@ -3021,12 +3006,6 @@ msgid "Detaillierte Prozessmodellierung"
 msgstr "Detailed process modeling"
 
 #: core/templates/core/index.html:141
-#, fuzzy
-#| msgid ""
-#| "Das Tool beachtet eine Vielzahl von Randbedingungen, die den Betrieb von "
-#| "elektrischen Fahrzeugen maßgeblich beeinflussen. Ladezeiten, Reinigung, "
-#| "Umparken, begrenzte Flächen, Ladekurven und vieles mehr werden "
-#| "berücksichtigt."
 msgid ""
 "WeBus beachtet eine Vielzahl von Randbedingungen, die den Betrieb von "
 "elektrischen Fahrzeugen maßgeblich beeinflussen. So etwa Ladezeiten, "
@@ -3058,10 +3037,6 @@ msgid "Kostenberechnung"
 msgstr "Cost calculation"
 
 #: core/templates/core/index.html:169
-#, fuzzy
-#| msgid ""
-#| "Eine Kostenberechnung liefert Ihnen eine Abschätzung für die Total-Cost-"
-#| "of-Ownership und einen wichtigen Vergleichswert zwischen Szenarien."
 msgid ""
 "WeBus liefert dir eine Abschätzung für die Total-Cost-of-Ownership und und "
 "macht somit deine Szenarien wirtschaftlich vergleichbar."
@@ -3085,16 +3060,10 @@ msgstr ""
 "your vehicle fleet."
 
 #: core/templates/core/index.html:214
-#, fuzzy
-#| msgid "WeBus"
 msgid "WeBus-Code"
-msgstr "WeBus"
+msgstr "WeBus-Code"
 
 #: core/templates/core/index.html:216
-#, fuzzy
-#| msgid ""
-#| "Unsere Software zur Modellierung von Bussystemen ist öffentlich "
-#| "verfügbar. Hier findest du den Quellcode für SimBA, Eflips sowie WeBus."
 msgid ""
 "Unsere Software zur Modellierung von Bussystemen ist öffentlich verfügbar. "
 "Hier findest du den Quellcode für WeBus. Damit kann auch ein eigener Server "
@@ -3454,8 +3423,6 @@ msgid "Willkommen bei WeBus!"
 msgstr "Welcome to WeBus!"
 
 #: core/templates/core/registration/email_signup.html:5
-#, fuzzy
-#| msgid "Klicken Sie auf folgenden Link, um die Registrierung abzuschließen:"
 msgid "Klicke auf folgenden Link, um die Registrierung abzuschließen:"
 msgstr "Click the following link to complete your registration:"
 
@@ -3464,10 +3431,6 @@ msgid "Registrierung abschließen"
 msgstr "Complete registration"
 
 #: core/templates/core/registration/email_signup.txt:2
-#, fuzzy
-#| msgid ""
-#| "Willkommen bei WeBus! Klicken Sie auf folgenden Link, um die "
-#| "Registrierung abzuschließen:"
 msgid ""
 "Willkommen bei WeBus! Klicke auf folgenden Link, um die Registrierung "
 "abzuschließen:"
@@ -3504,16 +3467,12 @@ msgid "Noch keinen Account?"
 msgstr "Don't have an account yet?"
 
 #: core/templates/core/registration/login.html:60
-#, fuzzy
-#| msgid "Sie haben keinen Zugang zu dieser Seite."
 msgid "Du hast keinen Zugang zu dieser Seite."
 msgstr "You dont have acces to this site"
 
 #: core/templates/core/registration/login.html:62
 #: core/templates/core/registration/signup.html:49
 #: core/templates/core/registration/signup_success.html:21
-#, fuzzy
-#| msgid "Sie sind bereits angemeldet."
 msgid "Du bist bereits angemeldet."
 msgstr "You are already logged in."
 
@@ -3551,8 +3510,6 @@ msgid "Passwort zurücksetzen"
 msgstr "Reset your password"
 
 #: core/templates/core/registration/password_reset_complete.html:8
-#, fuzzy
-#| msgid "Ihr Passwort wurde erfolgreich geändert."
 msgid "Dein Passwort wurde erfolgreich geändert."
 msgstr "The password was successfully changed"
 
@@ -3576,8 +3533,6 @@ msgid ""
 msgstr "The reset link was faulty, presumably it has already been used."
 
 #: core/templates/core/registration/password_reset_confirm.html:25
-#, fuzzy
-#| msgid " Bitte fordern Sie ein neues Passwort an."
 msgid " Bitte fordere ein neues Passwort an."
 msgstr "Please request a new password"
 
@@ -3587,8 +3542,6 @@ msgid "Passwort zurückgesetzt"
 msgstr "Password reset"
 
 #: core/templates/core/registration/password_reset_done.html:8
-#, fuzzy
-#| msgid "Eine E-Mail wurde an Ihre Adresse versendet."
 msgid "Eine E-Mail wurde an deine Adresse versendet."
 msgstr "An E-Mail has been sent to your adress"
 
@@ -3597,20 +3550,14 @@ msgid "Diese sollte spätestens in ein paar Minuten ankommen."
 msgstr "You should receive it in the next few minutes"
 
 #: core/templates/core/registration/password_reset_done.html:10
-#, fuzzy
-#| msgid "Wenn nicht, überprüfen Sie bitte Ihren Spam-Ordner."
 msgid "Wenn nicht, überprüfe bitte deinen Spam-Ordner."
 msgstr "Check your spam folder if not."
 
 #: core/templates/core/registration/password_reset_email.html:2
-#, fuzzy
-#| msgid "Folgen Sie diesem Link, um Ihr Passwort zurückzusetzen:"
 msgid "Folge diesem Link, um dein Passwort zurückzusetzen:"
 msgstr "Follow this link to reset your password?"
 
 #: core/templates/core/registration/password_reset_form.html:14
-#, fuzzy
-#| msgid "Ihre E-Mail-Adresse:"
 msgid "Deine E-Mail-Adresse:"
 msgstr "Your E-Mail adress"
 
@@ -3638,13 +3585,6 @@ msgid "Fast geschafft!"
 msgstr "Almost done!"
 
 #: core/templates/core/registration/signup_success.html:13
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "              Wir haben eine E-Mail mit dem Bestätigungscode an %(email)s "
-#| "versendet. Klicken Sie auf den Link in der E-Mail, um die Registrierung "
-#| "abzuschließen.\n"
-#| "            "
 msgid ""
 "\n"
 "              Wir haben eine E-Mail mit dem Bestätigungscode an %(email)s "
@@ -3723,10 +3663,6 @@ msgstr ""
 "at low temperatures"
 
 #: ebustoolbox/forms.py:187
-#, fuzzy
-#| msgid ""
-#| "Hier können Sie die gewünschte Batteriekapazität des Fahrzeugtyps "
-#| "anpassen."
 msgid ""
 "Hier kannst du die gewünschte Batteriekapazität des Fahrzeugtyps anpassen."
 msgstr "Here you can adjust the desired battery capacity of the vehicle type."
@@ -3752,10 +3688,6 @@ msgid "max. Verbrauch [kWh/km]"
 msgstr "Max. consumption [kWh/km]"
 
 #: ebustoolbox/forms.py:302
-#, fuzzy
-#| msgid ""
-#| "Ein Algorithmus bestimmt die benötigte Größe des Depots, sowie technische "
-#| "Parameter, automatisch für Sie."
 msgid ""
 "Ein Algorithmus bestimmt die benötigte Größe des Depots, sowie technische "
 "Parameter, automatisch für dich."
@@ -3940,11 +3872,6 @@ msgid "Finde Stationen"
 msgstr "Find stops"
 
 #: ebustoolbox/schedule_readers.py:395
-#, fuzzy
-#| msgid ""
-#| "Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine "
-#| "oder eine negative Fahrtdauer. Bitte ergänzen Sie Fahrzeiten oder "
-#| "entfernen Sie die Fahrten."
 msgid ""
 "Fahrt(en) in Zeile {', '.join(map(str, duration_errors))} haben keine oder "
 "eine negative Fahrtdauer. Bitte ergänze Fahrzeiten oder entferne die Fahrten."
@@ -4252,10 +4179,8 @@ msgid "€/h"
 msgstr "€/h"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:107
-#, fuzzy
-#| msgid "Gesamtkosten"
 msgid "Stromkosten"
-msgstr "Total costs"
+msgstr "Costs for electricity"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:108
 msgid "Stromkosten pro kWh inklusive aller Gebühren"
@@ -4364,8 +4289,6 @@ msgid "Fahrzeuglebensdauer"
 msgstr "Expected lifetime of vehicle"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:232
-#, fuzzy
-#| msgid "Welchen durchschnittlichen Verbrauch in kWh/km hat dieses Fahrzeug?"
 msgid "Durchschnittliche Lebensdauer für ein Fahrzeug dieses Fahrzeugtyps"
 msgstr "What is the average consumption of this vehicle in kWh/km?"
 
@@ -4444,10 +4367,8 @@ msgid "%%"
 msgstr "%%"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:286
-#, fuzzy
-#| msgid "Simulation"
 msgid "Inflation"
-msgstr "Simulation"
+msgstr "Inflation"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:287
 msgid "Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert"
@@ -4538,8 +4459,6 @@ msgstr ""
 "stays constant"
 
 #: ebustoolbox/templates/ebustoolbox/costs.html:318
-#, fuzzy
-#| msgid "Leistung pro Ladepunkt:"
 msgid "Preiseskalation - Ladepunkt"
 msgstr "Price escalation - charging point"
 
@@ -4590,8 +4509,6 @@ msgid "Kein Szenario"
 msgstr "No scenario"
 
 #: ebustoolbox/templates/ebustoolbox/dashboard-empty-state.html:15
-#, fuzzy
-#| msgid "Starten Sie, indem Sie Ihr erstes Szenario erstellen."
 msgid "Starte, indem du dein erstes Szenario erstellst."
 msgstr "Start by creating your first scenario"
 
@@ -4807,10 +4724,6 @@ msgid "%(unit)s"
 msgstr "%(unit)s"
 
 #: ebustoolbox/templates/ebustoolbox/partials/depot_configuration_wish.html:6
-#, fuzzy
-#| msgid ""
-#| "Ein Algorithmus bestimmt die benötigte Größe des Depots sowie technische "
-#| "Parameter automatisch für Sie."
 msgid ""
 "Ein Algorithmus bestimmt die benötigte Größe des Depots sowie technische "
 "Parameter automatisch für dich."
@@ -4835,10 +4748,8 @@ msgstr ""
 "and therefore block each other while shunting."
 
 #: ebustoolbox/templates/ebustoolbox/partials/depot_configuration_wish.html:84
-#, fuzzy
-#| msgid "Versicherung für Fahrzeug"
 msgid "Fläche für Fahrzeugtyp: "
-msgstr "Vehicle insurance"
+msgstr "Area for vehicle type"
 
 #: ebustoolbox/templates/ebustoolbox/partials/inner_vehicle_type_form.html:32
 msgid "Fahrzeugtyp mit Dieselzusatzheizung ausstatten"
@@ -4927,8 +4838,6 @@ msgid "Als JSON exportieren"
 msgstr "Export as JSON"
 
 #: ebustoolbox/templates/ebustoolbox/partials/rotation_count.html:13
-#, fuzzy
-#| msgid "Ohne Umläufe kann Ihr Szenario nicht simuliert werden."
 msgid "Ohne Umläufe kann dein Szenario nicht simuliert werden."
 msgstr "Your scenario cannot be simulated without blocks."
 
@@ -5049,8 +4958,6 @@ msgid "(Optional)"
 msgstr "(Optional)"
 
 #: ebustoolbox/templates/ebustoolbox/partials/trips_form.html:199
-#, fuzzy
-#| msgid "Beschreiben Sie Ihr Szenario..."
 msgid "Beschreibe dein Szenario..."
 msgstr "Describe your scenario..."
 
@@ -5195,8 +5102,6 @@ msgid "Kein Konto?"
 msgstr "No account"
 
 #: ebustoolbox/templates/ebustoolbox/signup.html:59
-#, fuzzy
-#| msgid "Registrieren Sie sich"
 msgid "Registriere dich"
 msgstr "Register yourself"
 
@@ -5213,8 +5118,6 @@ msgid "Ausgewählte Stationen editieren"
 msgstr "Edit selected stations"
 
 #: ebustoolbox/templates/ebustoolbox/stations.html:54
-#, fuzzy
-#| msgid "Sie können die Werte aller ausgewählten Stationen anpassen."
 msgid "Du kannst die Werte aller ausgewählten Stationen anpassen."
 msgstr "You can adjust the values of all selected stations"
 
@@ -5319,12 +5222,6 @@ msgid "Elektrifizierung"
 msgstr "Electrification"
 
 #: ebustoolbox/templates/ebustoolbox/stations.html:360
-#, fuzzy
-#| msgid ""
-#| "Klicken Sie auf \"Elektrifizieren\", \"Automatisch\" oder \"Nicht-elektr."
-#| "\". Dies elektrifiziert alle sichtbaren oder einzelne Stationen für die "
-#| "Simulation, überlässt die Entscheidung WeBus, oder schließt die "
-#| "Station(en) von der autoamtischen Elektrifzierung aus"
 msgid ""
 "Klicke auf \"Elektrifizieren\", \"Automatisch\" oder \"Nicht-elektr.\". Dies "
 "elektrifiziert alle sichtbaren oder einzelne Stationen für die Simulation, "
@@ -5571,11 +5468,6 @@ msgid "WeBus - Fahrzeuge"
 msgstr "WeBus - vehicles"
 
 #: ebustoolbox/templates/ebustoolbox/vehicles.html:38
-#, fuzzy
-#| msgid ""
-#| "Die gewählte Temperatur verändert den simulierten Verbrauch der "
-#| "Fahrzeuge. Dies ist nicht der Fall, wenn Sie den Verbrauchswert "
-#| "überschreiben."
 msgid ""
 "Die gewählte Temperatur verändert den simulierten Verbrauch der Fahrzeuge. "
 "Dies ist nicht der Fall, wenn du den Verbrauchswert überschreibst."
@@ -5588,13 +5480,6 @@ msgid "Durchschnittstemperatur"
 msgstr "Average temperature"
 
 #: ebustoolbox/templates/ebustoolbox/vehicles.html:61
-#, fuzzy
-#| msgid ""
-#| "Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch "
-#| "der Fahrzeuge. Dieser ist entscheidend für den kumulierten "
-#| "Energieverbrauch und die damit einhergenden Kosten und Emissionen der "
-#| "Energiebereitstellung. Die Temperatur hat keinen Einfluss wenn Sie den "
-#| "Fahrzeugtypen unten einen konstanten Verbrauch zuordnen."
 msgid ""
 "Die gewählte Temperatur verändert den simulierten Durchschnitts-Verbrauch "
 "der Fahrzeuge. Dieser ist entscheidend für den kumulierten Energieverbrauch "
@@ -5638,13 +5523,6 @@ msgid "Extremtemperatur"
 msgstr "Extreme temperature"
 
 #: ebustoolbox/templates/ebustoolbox/vehicles.html:150
-#, fuzzy
-#| msgid ""
-#| "Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der "
-#| "Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur "
-#| "und automatischen Identifikation von zu elektrifizierender "
-#| "Zwischenhaltestellen. Die Temperatur hat keinen Einfluss wenn Sie den "
-#| "Fahrzeugtypen unten einen konstanten Verbrauch zuordnen."
 msgid ""
 "Die gewählte Temperatur verändert den simulierten Extrem-Verbrauch der "
 "Fahrzeuge. Dieser ist entscheidend für die Auslegung der Infrastruktur und "
@@ -5668,12 +5546,6 @@ msgstr ""
 "at the weather station %(w_name)s. %(distance_text)s "
 
 #: ebustoolbox/templates/ebustoolbox/vehicles.html:240
-#, fuzzy
-#| msgid ""
-#| "Folgende Fahrzeugtypen wurden in Ihrem Umlaufplan identifiziert. Für die "
-#| "Simulation sind technische Parameter notwendig die Sie hier zuordnen "
-#| "müssen. Sie können Fahrzeugtypen aus einer Bibliothek übernehmen und "
-#| "verschiedene Werte manuell überschreiben."
 msgid ""
 "Folgende Fahrzeugtypen wurden in deinem Umlaufplan identifiziert. Für die "
 "Simulation sind technische Parameter notwendig die du hier zuordnen musst. "
@@ -5712,10 +5584,6 @@ msgid "Access Denied"
 msgstr "Access denied"
 
 #: ebustoolbox/views.py:290
-#, fuzzy
-#| msgid ""
-#| "Ihre Simulation wird ausgeführt, daher werden sie zur Zusammenfassung "
-#| "zurückgeleitet."
 msgid ""
 "Deine Simulation wird ausgeführt, daher wirst du zur Zusammenfassung "
 "zurückgeleitet."
@@ -5723,10 +5591,6 @@ msgstr ""
 "Your simulation is running, so you will be redirected back to the  summary."
 
 #: ebustoolbox/views.py:301
-#, fuzzy
-#| msgid ""
-#| "Ihre Simulation ist beendet, daher werden sie zu den Ergebnissen "
-#| "weitergeleitet.."
 msgid ""
 "Deine Simulation ist beendet, daher wirst du zu den Ergebnissen "
 "weitergeleitet.."
@@ -5750,16 +5614,10 @@ msgstr ""
 "zip file in x10 format."
 
 #: ebustoolbox/views.py:564 ebustoolbox/views.py:2102 ebustoolbox/views.py:2166
-#, fuzzy
-#| msgid "Sie haben keinen Zugriff auf diese Seite"
 msgid "Du hast keinen Zugriff auf diese Seite"
 msgstr "You do not have access to this page"
 
 #: ebustoolbox/views.py:672
-#, fuzzy
-#| msgid ""
-#| "Das Szenario kann nicht wiederholt gefiltert werden. Erstellen Sie "
-#| "stattdessen eine neue Variante"
 msgid ""
 "Das Szenario kann nicht wiederholt gefiltert werden. Erstelle stattdessen "
 "eine neue Variante"
@@ -5807,10 +5665,6 @@ msgid "Starting a Simulation which was sucessfully simulated is not allowed"
 msgstr "Starting a Simulation which was sucessfully simulated is not allowed"
 
 #: ebustoolbox/views.py:1651 ebustoolbox/views.py:2335
-#, fuzzy
-#| msgid ""
-#| "Ein unerwarteter Fehler ist aufgetreten. Wenden Sie sich an ihren "
-#| "Administrator"
 msgid ""
 "Ein unerwarteter Fehler ist aufgetreten. Wende dich an deinen Administrator"
 msgstr "An unexpected error has occurred. Please contact your administrator"
@@ -5840,8 +5694,6 @@ msgid "User already exists"
 msgstr "User already exists"
 
 #: ebustoolbox/views.py:1871
-#, fuzzy, python-brace-format
-#| msgid "Klicken Sie auf folgenden Link, um sich zu registrieren: {url}"
 msgid "Klicke auf folgenden Link, um dich zu registrieren: {url}"
 msgstr "Click on the following link to register: {url}"
 
@@ -5878,8 +5730,6 @@ msgid ""
 msgstr "Simultaneous export of more than {MAX_NR_SCENARIOS} is not permitted"
 
 #: ebustoolbox/views.py:2161
-#, fuzzy
-#| msgid "Sie müssen mindestens eine task_id als GET Request angeben"
 msgid "Du musst mindestens eine task_id als GET Request angeben"
 msgstr "You must specify at least one task_id as a GET request"
 
@@ -5926,9 +5776,6 @@ msgid "Scenario successfully imported with task_id {task_id}. "
 msgstr "Scenario successfully imported with task_id {task_id}. "
 
 #: templates/registration/password_reset_confirm.html:26
-#, fuzzy, python-format
-#| msgid ""
-#| "Der Rücksetzungslink war fehlerhaft, vermutlich wurde er bereits benutzt."
 msgid ""
 "<p>Der Rücksetzungslink war fehlerhaft, vermutlich wurde er bereits benutzt. "
 "Bitte <a href=\"%(reset_url)s\">fordere ein neues Passwort an.</a></p>\n"
