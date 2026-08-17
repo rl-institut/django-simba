@@ -1706,6 +1706,13 @@ def get_cumulative_energy(task_id: str) -> dict:
 def get_rotation_table_data(task_id: str) -> pd.DataFrame:
     scenario = Scenario.objects.get(task_id=task_id)
     rotations = Rotation.objects.filter(scenario=scenario).annotate(
+        # Driving events only ever attach to a Trip (charging/standby events attach to a
+        # Station instead), so summing the per-event SOC drop here correctly ignores any
+        # opportunity/depot charging that happens between trips. Using Max(soc_start) -
+        # Min(soc_end) instead (as before) collapses the whole rotation to its single
+        # deepest SOC dip, drastically understating consumption on rotations that recharge
+        # mid-route.
+        summed_soc_delta=Sum(F("trip__event__soc_start") - F("trip__event__soc_end")),
         max_soc=Max("trip__event__soc_start"),
         min_soc=Min("trip__event__soc_end"),
         cap=Max("vehicle_type__battery_capacity"),
@@ -1719,11 +1726,14 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
 
     rows = []
     for r in rotations:
+        soc_delta = r.summed_soc_delta if r.summed_soc_delta is not None else 0
+        # Kept separately for soc_spread_pct: the widest single SOC excursion, which is a
+        # different (and still meaningful) figure from total energy consumed.
         m_soc = r.max_soc if r.max_soc is not None else 0
         l_soc = r.min_soc if r.min_soc is not None else 0
+        soc_spread = m_soc - l_soc
         capacity = r.cap if r.cap is not None else 0
 
-        soc_delta = m_soc - l_soc
         energy_kwh = soc_delta * capacity
         dist_km = (r.total_dist_m or 0) / 1000.0
 
@@ -1746,7 +1756,7 @@ def get_rotation_table_data(task_id: str) -> pd.DataFrame:
                 "consumption": round(energy_kwh, 2),
                 "efficiency": round(efficiency, 3),
                 "duration": round(duration_h, 2),
-                "soc_spread_pct": round(soc_delta * 100, 1),
+                "soc_spread_pct": round(soc_spread * 100, 1),
             }
         )
     return pd.DataFrame(rows)
