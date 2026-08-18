@@ -1,0 +1,19 @@
+{% comment %}
+Renders one of the three electrification-state icons (always / auto / never), sized via
+`size_class`. Single source of truth for the path data shared by the preset buttons, the
+Level-2 tiles, and every per-row segmented control in stations.html.
+
+Usage: {% include "ebustoolbox/partials/electrification_icon.html" with state="auto" size_class="h-4 w-4" %}
+{% endcomment %}
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="{{ size_class }}">
+  {% if state == 'always' %}
+    <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
+    <circle cx="8" cy="8" r="7.5" />
+  {% elif state == 'auto' %}
+    <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
+    <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3" />
+  {% elif state == 'never' %}
+    <circle cx="8" cy="8" r="7.5" />
+    <path d="M3 3.5L12.5 13" />
+  {% endif %}
+</svg>
