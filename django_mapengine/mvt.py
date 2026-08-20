@@ -3,13 +3,14 @@ from typing import List
 
 from django.db import connection
 from django.db.models import QuerySet
+from django.http import HttpResponseForbidden
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework_mvt.views import BaseMVTView
 
 from django.apps import apps
 
-from ebustoolbox.models import EnumScenarioType, EnumSimulationType
 
 @dataclass
 class MVTLayer:
@@ -33,6 +34,15 @@ class MVTView(BaseMVTView):
         params = request.GET.dict()
 
         if "task_id" in params:
+            # Tiles carry station/route data of the scenario, so they need the
+            # same authorization as every other <task_id> endpoint.
+            # Imported here because ebustoolbox.views imports django_mapengine
+            # at module scope.
+            from ebustoolbox.views import AuthorizedMixIn
+
+            if not AuthorizedMixIn.get_permission(request.user, params["task_id"]):
+                return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+
             # app registry to find the model across apps
             Scenario = apps.get_model("ebustoolbox", "Scenario")
             try:
