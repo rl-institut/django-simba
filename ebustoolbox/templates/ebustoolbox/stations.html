@@ -3,7 +3,7 @@
 {% load static %}
 {% load custom_filters %}
 
-  {% block title %}{% translate 'WeBus - Endhaltestellen' %}{% endblock title %}
+{% block title %}{% translate 'WeBus - Endhaltestellen' %}{% endblock title %}
 
 {% block wizard_navigation %}
   {% with wiz_idx=4 %}
@@ -12,1125 +12,515 @@
 {% endblock wizard_navigation %}
 
 {% block wizard_content %}
-<!-- Start Modal for bulk editing -->
-<div id="bulkEditingModal" class="hidden relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-  <!--
-    Background backdrop, show/hide based on modal state.
-
-    Entering: "ease-out duration-300"
-      From: "opacity-0"
-      To: "opacity-100"
-    Leaving: "ease-in duration-200"
-      From: "opacity-100"
-      To: "opacity-0"
-  -->
-  <div class="fixed inset-0 bg-slate-500/75 transition-opacity" aria-hidden="true"></div>
-
-  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-    <div class="flex min-h-full items-end justify-center p-4 text-center items-center sm:p-0">
-      <!--
-        Modal panel, show/hide based on modal state.
-
-        Entering: "ease-out duration-300"
-          From: "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-          To: "opacity-100 translate-y-0 sm:scale-100"
-        Leaving: "ease-in duration-200"
-          From: "opacity-100 translate-y-0 sm:scale-100"
-          To: "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-      -->
-      <div id="bulkSelection" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-        <div class="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-          <button id="closeBulkEditingModalIcon" type="button" class="rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            <span class="sr-only">{% translate 'Close' %}</span>
-            <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div class="flex items-start">
-          <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-            <h3 class="text-base font-semibold text-slate-900" id="modal-title">{% translate 'Ausgewählte Stationen editieren' %}</h3>
-            <div class="mt-2">
-              <p class="text-sm text-slate-500">{% translate 'Du kannst die Werte aller ausgewählten Stationen anpassen.' %}</p>
-            </div>
-          </div>
-        </div>
-        <div class="mt-8 pt-8 border-t border-slate-200">
-          <input type="hidden" id="bulk_is_electrified">
-          <div id="electrifyState" class="flex items-center space-x-2 bg-slate-100 rounded-full p-1">
-            <button type="button"
-              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
-              data-color="emerald"
-              data-value="elektrifizieren"
-            >
-              <span class="pr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                  <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
-                  <circle cx="8" cy="8" r="7.5"/>
-                </svg>
-              </span>
-              {% translate 'Elektrifizieren' %}
-            </button>
-            <button type="button"
-              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-amber-100 text-sm font-semibold text-amber-700 shadow rounded-full selected"
-              data-color="amber"
-              data-value="automatisch"
-            >
-              <span class="pr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                  <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
-                  <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
-                </svg>
-              </span>
-              {% translate 'Automatisch' %}
-            </button>
-            <input type="hidden" id="bulk_is_electrifiable">
-            <button type="button"
-              class="inline-flex items-center justify-center flex-grow py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full"
-              data-color="gray"
-              data-value="nicht-elektrifizieren"
-            >
-              <span class="pr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                  <circle cx="8" cy="8" r="7.5" />
-                  <path d="M3 3.5L12.5 13" />
-                </svg>
-              </span>
-              {% translate 'Nicht elektr.' %}
-            </button>
-          </div>
-        </div>
-        <div id="bulkInputContainer" hidden>
-          <div class="flex gap-2 mt-8">
-            <div class="w-6/12">
-              <label for="inputItem" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Maximale Anzahl Ladepunkte' %}</label>
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-
-                        type="number"
-                        name="chargingPointNumber"
-                        id="bulk_chargingPointNumber"
-                        aria-label="Anzahl an Ladepunkten"
-                        class="block w-full rounded-md bg-white px-3 py-1.5 text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 placeholder:text-slate-400 focus:outline focus:outline-2 focus:outline-emerald-500 sm:text-sm/6"
-                >
-              </div>
-            </div>
-            <div class="w-6/12">
-              <label for="inputItem" class="block text-sm/6 font-semibold text-slate-800">{% translate 'Ladeleistung pro Punkt' %}</label>
-              <div class="flex items-center rounded-md outline outline-1 outline-transparent mt-2">
-                <input
-                        type="number"
-                        name="chargingCapacity"
-                        id="bulk_chargingCapacity"
-                        class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                        aria-describedby="price-currency"
-                >
-                <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
-              </div>
-            </div>
-          </div>
-      </div>
-      <div class="flex justify-end gap-2 mt-8 pt-8 border-t border-slate-200">
-        <button type="button" id="closeBulkEditingModalButton" class="px-6 py-2 bg-slate-100 text-slate-800 text-sm font-semibold tracking-wide rounded-full hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300">
-            {% translate 'Abbrechen' %}
-        </button>
-        <button id="bulk_submit_button" type="button" class="px-6 py-2 bg-slate-800 text-white text-sm font-semibold rounded-full tracking-wide hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-            {% translate 'Bestätigen' %}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- End Modal for bulk editing -->
-
-<!-- Add Top Navigation -->
-
-<!-- Add Step Progress Bar -->
-
-<!-- For alerts -->
-<!--
-<aside class="flex flex-col items-center">
-<div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-  // Add component here
-</div>
-</aside>
--->
-
 <main class="flex flex-col items-center flex-grow">
 <div class="sm:pt-8 sm:pb-4 lg:pt-12 sm:px-6 lg:px-8 w-full max-w-7xl">
-  <h1 class="pb-12 text-2xl text-slate-500 font-light tracking-wide uppercase">
+  <h1 class="pb-8 text-2xl text-slate-500 font-light tracking-wide uppercase">
       {% translate 'Endhaltestellen' %}
       <span class="text-sm normal-case font-normal text-slate-500">{% translate '(optional)' %}</span>
   </h1>
 
   <section class="pb-12">
-    <form
-      x-data='{showDetail: false}'
-      type="submit"
-      method ="POST">
+    <form x-data="{ showDetail: false }" type="submit" method="POST">
       {% csrf_token %}
 
-      <div
-        id="infoBox"
-        class="relative flex gap-8 bg-white text-slate-500 p-6 mb-8 rounded border-l-4 border-slate-400"
-      >
-        <button
-          type="button"
-          onclick="document.getElementById('infoBox').remove()"
-          class="absolute top-2 right-4 text-slate-400 hover:text-slate-600 transition"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-        <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/clock-2-min.png' %}" width="92" height="24" alt="" class="w-[92px] h-[24px]" />
-          <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Es werden alle Standorte aus dem Umlaufplan als Endhaltestellen betrachtet, an denen ein Bus mindestens zwei Minuten lang steht.' %}
-          </span>
+      <!-- LEVEL 1 — state of terminus electrification, always visible -->
+      <div class="bg-white border border-slate-200 rounded-lg shadow mb-6">
+        <div class="flex items-start justify-between gap-8 p-6 pb-5">
+          <div class="flex flex-col gap-2 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-base font-semibold text-slate-800">{% translate 'Elektrifizierung der Endhaltestellen' %}</span>
+              <span id="modeBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide"></span>
+            </div>
+            <span id="modeSentence" class="text-sm leading-relaxed text-slate-500 max-w-[62ch]"></span>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0">
+            <button type="button" id="showStationsTable" @click="showDetail = !showDetail" class="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 bg-white text-slate-800 text-sm font-semibold rounded-full hover:bg-slate-100 hover:border-slate-400 transition-all duration-200">
+              <span x-text="showDetail ? `{% translate 'Zuklappen' %}` : `{% translate 'Einzelne Haltestellen anpassen' %}`"></span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" class="transition-transform duration-200" :class="showDetail ? 'rotate-180' : ''">
+                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <span class="text-xs text-slate-400">{% blocktranslate count counter=ordered_stations|length %}{{ counter }} Endhaltestelle erkannt{% plural %}{{ counter }} Endhaltestellen erkannt{% endblocktranslate %}</span>
+          </div>
         </div>
-        <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/no-electrify-button.png' %}" width="24" height="24" alt="" class="w-[24] h-[24px]" />
-          <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Standardmäßig werden keine Endhaltestellen elektrifiziert.' %}
-          </span>
+
+        <!-- Global default: an explicit choice, not a hidden one -->
+        <div class="flex items-center gap-4 flex-wrap px-6 pb-5">
+          <span class="text-xs font-semibold text-slate-500 tracking-wide">{% translate 'Voreinstellung für alle' %}</span>
+          <div class="flex p-0.5 gap-0.5 bg-slate-100 rounded-full">
+            <button type="button" id="presetAutoButton" data-color="amber" onclick="applyPreset('auto')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-slate-500 text-sm font-semibold rounded-full">
+              {% include "ebustoolbox/partials/electrification_icon.html" with state="auto" size_class="h-4 w-4" %}
+              <span>{% translate 'Automatisch' %}</span>
+            </button>
+            <button type="button" id="presetNeverButton" data-color="gray" onclick="applyPreset('never')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-slate-500 text-sm font-semibold rounded-full">
+              {% include "ebustoolbox/partials/electrification_icon.html" with state="never" size_class="h-4 w-4" %}
+              <span>{% translate 'Keine' %}</span>
+            </button>
+          </div>
+          <button type="button" id="resetDeviationsButton" onclick="resetDeviations()" class="hidden text-sm font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
+            {% translate 'Abweichungen zurücksetzen' %}
+          </button>
         </div>
-        <div class="flex flex-col flex-1 gap-2">
-          <img src="{% static 'core/images/electrify-option-button.png' %}" width="74" height="24" alt="" class="w-[74px] h-[24px]" />
-          <span class="text-sm text-slate-500 pt-2">
-            {% translate 'Du hast jedoch die Möglichkeit, die Endstationen manuell zu elektrifizieren und die Anzahl der Ladepunkte sowie die Ladeleistung festzulegen – oder du überlässt WeBus die Elektrifizierung mit der Option "Automatisch".' %}
-          </span>
+
+        <!-- LEVEL 2 — how the stations are distributed right now -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-200 border-t border-slate-200 rounded-b-lg overflow-hidden">
+          <button type="button" id="tileAlways" @click="showDetail = true; setStatusFilter('always')" class="flex flex-col gap-2 items-start p-5 bg-white text-left border-t-2 border-transparent transition-colors duration-200 hover:bg-slate-50">
+            <span class="flex items-center gap-2 text-emerald-700">
+              {% include "ebustoolbox/partials/electrification_icon.html" with state="always" size_class="h-[18px] w-[18px]" %}
+              <span class="text-sm font-semibold tracking-wide">{% translate 'Immer elektrifizieren' %}</span>
+            </span>
+            <span class="flex items-baseline gap-1.5">
+              <span id="countAlways" class="text-2xl font-semibold text-slate-800 tabular-nums">0</span>
+              <span class="text-sm text-slate-400">{% translate 'Haltestellen' %}</span>
+            </span>
+            <span class="text-xs leading-relaxed text-slate-500 text-left">{% translate 'Ladestation wird gesetzt, auch wenn die Simulation sie nicht braucht.' %}</span>
+          </button>
+          <button type="button" id="tileAuto" @click="showDetail = true; setStatusFilter('auto')" class="flex flex-col gap-2 items-start p-5 bg-white text-left border-t-2 border-transparent transition-colors duration-200 hover:bg-slate-50">
+            <span class="flex items-center gap-2 text-amber-700">
+              {% include "ebustoolbox/partials/electrification_icon.html" with state="auto" size_class="h-[18px] w-[18px]" %}
+              <span class="text-sm font-semibold tracking-wide">{% translate 'Automatisch' %}</span>
+            </span>
+            <span class="flex items-baseline gap-1.5">
+              <span id="countAuto" class="text-2xl font-semibold text-slate-800 tabular-nums">0</span>
+              <span class="text-sm text-slate-400">{% translate 'Haltestellen' %}</span>
+            </span>
+            <span class="text-xs leading-relaxed text-slate-500 text-left">{% translate 'WeBus elektrifiziert nur, wo es der Umlauf verlangt.' %}</span>
+          </button>
+          <button type="button" id="tileNever" @click="showDetail = true; setStatusFilter('never')" class="flex flex-col gap-2 items-start p-5 bg-white text-left border-t-2 border-transparent transition-colors duration-200 hover:bg-slate-50">
+            <span class="flex items-center gap-2 text-slate-500">
+              {% include "ebustoolbox/partials/electrification_icon.html" with state="never" size_class="h-[18px] w-[18px]" %}
+              <span class="text-sm font-semibold tracking-wide">{% translate 'Nie elektrifizieren' %}</span>
+            </span>
+            <span class="flex items-baseline gap-1.5">
+              <span id="countNever" class="text-2xl font-semibold text-slate-800 tabular-nums">0</span>
+              <span class="text-sm text-slate-400">{% translate 'Haltestellen' %}</span>
+            </span>
+            <span class="text-xs leading-relaxed text-slate-500 text-left">{% translate 'Von der Elektrifizierung ausgeschlossen, egal was die Simulation ergibt.' %}</span>
+          </button>
         </div>
       </div>
 
-    <div class="flex items-center justify-between space-x-4 pb-8">
-      <div class="w-4/12" id="">
-        <label for="default_charge_power" class="flex items-center gap-2 text-base font-semibold text-slate-800 pb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16">
-            <path fill="#2E282A" d="M23.578,16.7319l-14,9.9165a1,1,0,0,1-1.395-1.3925l5.8867-8.34H9A1,1,0,0,1,8.4218,15.1l14-9.9165A1,1,0,0,1,23.8544,6.519l-3.981,6.5469L23.48,15.0386a1,1,0,0,1,.0981,1.6933ZM16,3a12.88,12.88,0,0,1,4.521.812A1,1,0,1,0,21.22,1.938,14.9992,14.9992,0,0,0,1.938,21.22a1,1,0,1,0,1.874-.6992A12.88,12.88,0,0,1,3,16,13.0144,13.0144,0,0,1,16,3Zm14.062,7.78a1,1,0,0,0-1.874.6992A12.88,12.88,0,0,1,29,16,13.0144,13.0144,0,0,1,16,29a12.88,12.88,0,0,1-4.521-.812,1,1,0,0,0-.6992,1.874A14.9992,14.9992,0,0,0,30.062,10.78Z"/>
-          </svg>
-          <span>{% translate 'Globale Ladeleistung an Endhaltestellen' %}</span>
-        </label>
-        <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-              <input {{charging_power_form.default_charge_power|widget_attrs}} class="block bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
+      <!-- Global charge power, only meaningful when something can be electrified -->
+      <div id="globalPowerCard" class="flex flex-col sm:flex-row gap-6 items-start bg-white border border-slate-200 rounded-lg shadow p-6 mb-6">
+        <div class="flex flex-col gap-2 w-full sm:w-72 shrink-0">
+          <label for="id_default_charge_power" class="flex items-center gap-2 text-base font-semibold text-slate-800">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16">
+              <path fill="#2E282A" d="M23.578,16.7319l-14,9.9165a1,1,0,0,1-1.395-1.3925l5.8867-8.34H9A1,1,0,0,1,8.4218,15.1l14-9.9165A1,1,0,0,1,23.8544,6.519l-3.981,6.5469L23.48,15.0386a1,1,0,0,1,.0981,1.6933ZM16,3a12.88,12.88,0,0,1,4.521.812A1,1,0,1,0,21.22,1.938,14.9992,14.9992,0,0,0,1.938,21.22a1,1,0,1,0,1.874-.6992A12.88,12.88,0,0,1,3,16,13.0144,13.0144,0,0,1,16,3Zm14.062,7.78a1,1,0,0,0-1.874.6992A12.88,12.88,0,0,1,29,16,13.0144,13.0144,0,0,1,16,29a12.88,12.88,0,0,1-4.521-.812,1,1,0,0,0-.6992,1.874A14.9992,14.9992,0,0,0,30.062,10.78Z" />
+            </svg>
+            <span>{% translate 'Globale Ladeleistung' %}</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <input {{charging_power_form.default_charge_power|widget_attrs}} class="w-32 px-2.5 py-1.5 border border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
               placeholder="0,00"
               aria-describedby="defaultChargePowerHint"
               onchange="updateDefaultChargePower()"
-              >
-          <div id="" class="shrink-0 select-none text-sm text-slate-500">kW</div>
-        </div>
-        <div id="defaultChargePowerHint" class="text-sm text-slate-500 leading-snug pt-1">{% translate 'Wird auf alle Haltestellen angewendet, bei denen keine individuelle Leistung angegeben ist.' %}</div>
-      </div>
-      <div class="flex flex-start flex-1">
-        <button
-          type="button"
-          class="px-6 py-2 bg-slate-200 text-slate-800 text-base font-semibold tracking-wide rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 active:bg-slate-300 transition-all duration-300"
-          @click='showDetail = !showDetail'
-          id="showStationsTable"
-              x-text='!showDetail ? `{% translate "Endhaltestellen elektrifizieren" %}` : `{% translate "Zuklappen" %}`'
             >
-        </button>
-      </div>
-    </div>
-
-    <div id="stations-details" class="w-full" x-show="showDetail" x-cloak>
-      <div class="flex items-center  space-x-4">
-        <div class="w-3/12 pt-4 bg-black'">
-          <button type="button" id="bulkEditingButton"
-                class="disabled:bg-gray-500 disabled:text-slate-300 px-4 py-2 h-max bg-slate-800 text-white text-sm font-semibold tracking-wide rounded-full hover:bg-black hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black active:bg-slate-900 transition-all duration-300">
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-              </svg>
-                  <span>{% translate 'Ausgewählte bearbeiten' %}</span>
-            </span>
-          </button>
+            <span class="text-sm text-slate-500">kW</span>
+          </div>
+          <span id="defaultChargePowerHint" class="text-xs leading-relaxed text-slate-500">{% translate 'Gilt für jede elektrifizierte Endhaltestelle ohne eigenen Wert.' %}</span>
         </div>
-        <div class="w-4/12 pb-4">
-          <label for="stationSearch" class="flex items-center space-x-2 text-sm/6 font-semibold text-slate-500">
-            <span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="h-4 w-4 text-slate-400">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
-            </span>
-                <span>{% translate 'Suche' %}</span>
-          </label>
-          <div class="mt-2 relative">
-            <input
-              type="text"
-              name="stationSearch"
-              id="stationSearch"
-              class="block w-full bg-white min-w-0 grow mr-2 px-3 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-              placeholder='{% translate "Nach Stationen suchen" %}'>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
+        <div class="flex-1 flex gap-3.5 items-start p-3.5 bg-slate-50 rounded-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-[18px] w-[18px] text-slate-400 shrink-0 mt-0.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+          <span class="text-xs leading-relaxed text-slate-500">
+            {% translate 'Als Endhaltestelle gilt jeder Standort im Umlaufplan, an dem ein Bus mindestens zwei Minuten steht. Du musst hier nichts tun — die Voreinstellung wird auf alle Endhaltestellen angewendet.' %}
+          </span>
+        </div>
+      </div>
+
+      <!-- LEVEL 3 — per-station overrides -->
+      <div id="stations-details" class="bg-white border border-slate-200 rounded-lg shadow overflow-hidden" x-show="showDetail" x-cloak>
+        <div class="flex items-center gap-4 flex-wrap px-6 py-4 border-b border-slate-200">
+          <div class="relative w-full sm:w-72">
+            <input type="text" id="stationSearch" class="w-full pl-3 pr-9 py-1.5 border border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="{% translate 'Nach Stationen oder Linien suchen' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none">
               <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
           </div>
-        </div>
-        <div class="w-4/12 pb-4">
-          <label id="lineFilter" class="flex items-center space-x-2 text-sm/6 font-semibold text-slate-500">
-            <span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
-              </svg>
-            </span>
-            <span>{% translate 'Filter' %}</span>
-          </label>
-          <div class="mt-2 relative">
-            <div
-              id="multiselect-container"
-              class="flex flex-wrap items-center rounded-md bg-white py-1.5 px-3 text-left text-slate-800 outline outline-1 -outline-offset-1 outline-slate-400 focus-within:outline focus-within:outline-2 focus-within:outline-emerald-400 sm:text-sm/6 cursor-pointer"
-              tabindex="0"
-              aria-labelledby="lineFilter"
-            >
-              <span id="line-filter" class="text-slate-400">{% translate 'Linie auswählen...' %}</span>
-            </div>
-            <svg
-              class="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <!-- Dropdown List -->
-            <ul
-              id="dropdown-list"
-              class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-md bg-white shadow-md outline-none sm:text-sm hidden"
-            >
-              {% for line in all_lines %}
-              <li class="cursor-pointer px-3 py-2 hover:bg-slate-100" data-value="{{ line }}">{{ line }}</li>
-              {% endfor %}
-            </ul>
+          <div class="flex gap-1.5 items-center flex-wrap" id="statusFilterChips">
+            <button type="button" class="status-filter-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-500" data-status-filter="all" onclick="setStatusFilter('all')">{% translate 'Alle' %}</button>
+            <button type="button" class="status-filter-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-500" data-status-filter="always" onclick="setStatusFilter('always')">{% translate 'Immer' %}</button>
+            <button type="button" class="status-filter-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-500" data-status-filter="auto" onclick="setStatusFilter('auto')">{% translate 'Automatisch' %}</button>
+            <button type="button" class="status-filter-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-500" data-status-filter="never" onclick="setStatusFilter('never')">{% translate 'Nie' %}</button>
           </div>
+          <span id="visibleCountLabel" class="ml-auto text-xs text-slate-400"></span>
+        </div>
+
+        <div class="max-h-[32rem] overflow-auto">
+          <table class="min-w-full border-collapse">
+            <thead class="bg-slate-100 sticky top-0 z-10">
+              <tr>
+                <th scope="col" class="w-3/12 text-left px-5 py-3 text-xs font-semibold text-slate-800 tracking-wide">{% translate 'Station' %}</th>
+                <th scope="col" class="w-4/12 text-left px-5 py-3 text-xs font-semibold text-slate-800 tracking-wide">{% translate 'Elektrifizierung' %}</th>
+                <th scope="col" class="w-[18%] text-left px-5 py-3 text-xs font-semibold text-slate-800 tracking-wide">{% translate 'Ladepunkte' %}</th>
+                <th scope="col" class="w-[18%] text-left px-5 py-3 text-xs font-semibold text-slate-800 tracking-wide">{% translate 'Ladeleistung' %}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              {% for station_id in ordered_stations %}
+                {% with form=stations_forms|get_item:station_id station=stations|get_item:station_id %}
+              <tr class="station-row" data-station-id="{{ station_id }}" data-value="{{ station.name }}" data-lines="{{ station.lines|join:' ' }}">
+                <td class="px-5 py-3 align-middle">
+                  <div class="flex flex-col gap-0.5">
+                    <span class="text-sm text-slate-800">{{ station.name }}</span>
+                    <span class="text-xs text-slate-400">{% translate 'Linien' %} {{ station.lines|join:', ' }}</span>
+                  </div>
+                </td>
+                <td class="px-5 py-3 align-middle">
+                  <div class="inline-flex p-0.5 gap-0.5 bg-slate-100 rounded-full">
+                    <input type="hidden" {{form.is_electrified|widget_attrs}}>
+                    <input type="hidden" {{form.is_electrifiable|widget_attrs}}>
+                    <button type="button"
+                      class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-500 text-xs font-semibold rounded-full station-btn-elektrifizieren hover:shadow-lg"
+                      data-color="emerald"
+                      data-value="elektrifizieren"
+                      data-station-id="{{ station_id }}"
+                      title="{% translate 'Immer elektrifizieren' %}"
+                    >
+                      {% include "ebustoolbox/partials/electrification_icon.html" with state="always" size_class="h-3.5 w-3.5" %}
+                      <span>{% translate 'Immer' %}</span>
+                    </button>
+                    <button type="button"
+                      class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-500 text-xs font-semibold rounded-full station-btn-automatisch hover:shadow-lg"
+                      data-color="amber"
+                      data-value="automatisch"
+                      data-station-id="{{ station_id }}"
+                      title="{% translate 'WeBus entscheidet' %}"
+                    >
+                      {% include "ebustoolbox/partials/electrification_icon.html" with state="auto" size_class="h-3.5 w-3.5" %}
+                      <span>{% translate 'Automatisch' %}</span>
+                    </button>
+                    <button type="button"
+                      class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-500 text-xs font-semibold rounded-full station-btn-nicht-elektrifizieren hover:shadow-lg"
+                      data-color="gray"
+                      data-value="nicht-elektrifizieren"
+                      data-station-id="{{ station_id }}"
+                      title="{% translate 'Nie elektrifizieren' %}"
+                    >
+                      {% include "ebustoolbox/partials/electrification_icon.html" with state="never" size_class="h-3.5 w-3.5" %}
+                      <span>{% translate 'Nie' %}</span>
+                    </button>
+                    <!-- Placeholder for tailwind classes which are added through js magic. The tailwind does not pick up bg-${color}-100.
+                    This way the tailwind-cli picks them up. The other colors are already "known" -->
+                    <div class="hidden bg-gray-100 text-gray-700 bg-indigo-100 text-indigo-800"></div>
+                  </div>
+                </td>
+                <td class="px-5 py-3 align-middle">
+                  <div data-input="charging-power">
+                    <input
+                      {{form.amount_charging_places|widget_attrs}}
+                      aria-label="{% translate 'Anzahl an Ladepunkten' %}"
+                      class="w-24 px-2.5 py-1.5 border border-slate-400 rounded-md text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400"
+                      placeholder="0"
+                    >
+                  </div>
+                  <span data-input="static-hint" class="hidden text-sm text-slate-400">–</span>
+                </td>
+                <td class="px-5 py-3 align-middle">
+                  <div data-input="charging-power" class="flex items-center gap-2">
+                    <input {{ form.power_per_charger|widget_attrs }} class="inp-charge-power w-24 px-2.5 py-1.5 border border-slate-400 rounded-md text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400" placeholder="{{ charging_power_form.default_charge_power.value }}" aria-describedby="price-currency">
+                    <span class="text-sm text-slate-500">kW</span>
+                  </div>
+                  <span data-input="static-hint" class="hidden text-sm text-slate-400">–</span>
+                </td>
+              </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 px-6 py-4 border-t border-slate-200 bg-slate-50">
+          <span class="text-xs text-slate-500">{% translate 'Änderungen wirken sofort — die Zusammenfassung oben zeigt immer den aktuellen Stand.' %}</span>
+          <button type="button" @click="showDetail = false" class="px-4 py-1.5 border border-slate-300 bg-white text-slate-800 text-xs font-semibold rounded-full hover:bg-slate-100">{% translate 'Zuklappen' %}</button>
         </div>
       </div>
-      <div class="mt-4 shadow border border-slate-100 rounded-lg overflow-auto max-h-[45rem]">
-        <table class="min-w-full divide-y divide-slate-200">
-          <thead class="bg-slate-100">
-            <tr>
-              <th scope="col" class="w-3/12 py-4 pl-4 pr-3 text-left text-base font-semibold text-slate-800 align-top">
-{#used to be  <button type="button" href="#" class="group inline-flex">                #}
-                <div  class="group inline-flex">
-                      {% translate 'Stationen' %}
-                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-{#Disable sort                  #}
-{#                  <span class="invisible text-slate-400 group-hover:visible group-focus:visible">#}
-{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
-{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
-{#                    </svg>#}
-{#                  </span>#}
-                </div>
-              </th>
-                  <th scope="col" class="w-5/12 py-4 pl-4 pr-3 text-left align-top">
-                    <div  class="group inline-flex">
-                      <div class="text-left">
-                        <span class="text-base font-semibold text-slate-800">{% translate 'Elektrifizierung' %}</span>
-                        <icon-and-tooltip >
-                          <div class="relative inline-block">
-                            <!-- Info Icon -->
-                            <span class="cursor-pointer group">
-                              <svg xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="2"
-                                stroke="currentColor"
-                                class="size-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                              </svg>
-                              <!-- Tooltip -->
-                              <div class="absolute left-0 top-full  z-10 mt-2 w-96 rounded-md bg-slate-800 p-2 text-sm text-white shadow-lg opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-                                {% translate 'Klicke auf "Elektrifizieren", "Automatisch" oder "Nicht-elektr.". Dies elektrifiziert alle sichtbaren oder einzelne Stationen für die Simulation, überlässt die Entscheidung WeBus, oder schließt die Station(en) von der autoamtischen Elektrifzierung aus' %}
-                              </div>
-                            </span>
-                          </div>
 
-                        </icon-and-tooltip>
-
-                        <div id="countElectrifiedTotal" class="text-xs font-normal text-slate-500">(0 / 0)</div>
-                  </div>
-                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-{#                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">#}
-{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
-{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
-{#                    </svg>#}
-{#                  </span>#}
-                </div>
-              </th>
-              <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
-                <div href="#" class="group inline-flex">
-                  <div class="text-left">
-                        <span class="text-base font-semibold text-slate-800">{% translate 'Maximale Anzahl Ladepunkte' %}</span>
-                    <div id="countChargingPlacesTotal" class="text-xs font-normal text-slate-500">(54)</div>
-                  </div>
-                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-{#                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">#}
-{#                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">#}
-{#                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />#}
-{#                    </svg>#}
-{#                  </span>#}
-                </div>
-              </th>
-              <th scope="col" class="w-2/12 py-4 pl-4 pr-3 text-left align-top">
-                <button type="button" href="#" class="group inline-flex">
-                  <div class="flex gap-2 text-left">
-                    <span class="flex-1 translate-y-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16">
-                        <path fill="#2E282A" d="M23.578,16.7319l-14,9.9165a1,1,0,0,1-1.395-1.3925l5.8867-8.34H9A1,1,0,0,1,8.4218,15.1l14-9.9165A1,1,0,0,1,23.8544,6.519l-3.981,6.5469L23.48,15.0386a1,1,0,0,1,.0981,1.6933ZM16,3a12.88,12.88,0,0,1,4.521.812A1,1,0,1,0,21.22,1.938,14.9992,14.9992,0,0,0,1.938,21.22a1,1,0,1,0,1.874-.6992A12.88,12.88,0,0,1,3,16,13.0144,13.0144,0,0,1,16,3Zm14.062,7.78a1,1,0,0,0-1.874.6992A12.88,12.88,0,0,1,29,16,13.0144,13.0144,0,0,1,16,29a12.88,12.88,0,0,1-4.521-.812,1,1,0,0,0-.6992,1.874A14.9992,14.9992,0,0,0,30.062,10.78Z"/>
-                      </svg>
-                    </span>
-
-                    <span class="text-base font-semibold text-slate-800">{% translate 'Ladeleistung pro Punkt' %}</span>
-                  </div>
-                  <!-- Active: "bg-slate-200 text-slate-800 group-hover:bg-slate-300", Not Active: "invisible text-slate-400 group-hover:visible group-focus:visible" -->
-                  <span class="invisible ml-2 flex-none rounded text-slate-400 group-hover:visible group-focus:visible">
-                    <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                    </svg>
-                  </span>
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr class="bg-slate-100">
-              <td class="px-4 py-3">
-                <div class="flex gap-3">
-                  <div class="flex h-6 shrink-0 items-center">
-                    <div class="group grid size-4 grid-cols-1">
-                      <input
-                        id="selectAll"
-                        aria-describedby="selectAll-description"
-                        name="selectAll"
-                        type="checkbox"
-                        class="col-start-1 row-start-1 appearance-none rounded border border-slate-300 bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 indeterminate:border-emerald-500 indeterminate:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:border-slate-300 disabled:bg-slate-100 disabled:checked:bg-slate-100 forced-colors:appearance-auto"
-                      >
-                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-slate-950/25" viewBox="0 0 14 14" fill="none">
-                        <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="text-sm/6">
-                        <label for="selectAll" class="font-normal text-slate-500">{% translate 'Alle' %}</label>
-                  </div>
-                </div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex items-center space-x-2">
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
-                    data-value="elektrifizieren"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
-                        <circle cx="8" cy="8" r="7.5"/>
-                      </svg>
-                    </span>
-                        {% translate 'Elektrifizieren' %}
-                  </button>
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
-                    data-value="automatisch"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
-                        <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
-                      </svg>
-                    </span>
-                        {% translate 'Automatisch' %}
-                  </button>
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full all-station-btn hover:shadow-lg"
-                    data-value="nicht-elektrifizieren"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <circle cx="8" cy="8" r="7.5" />
-                        <path d="M3 3.5L12.5 13" />
-                      </svg>
-                    </span>
-                        {% translate 'Nicht elektr.' %}
-                  </button>
-                </div>
-              </td>
-              <td class="px-4 py-3"></td>
-              <td class="px-4 py-3"></td>
-            </tr>
-
-            {% for station_id in ordered_stations %}
-              {% with stations_forms|get_item:station_id as form %}
-                {% with stations|get_item:station_id as station %}
-            <tr
-              class="bg-white station-row"
-              data-station-id="{{ station.id }}"
-              data-value="{{ station.name }}"
-              data-lines="{{ station.lines|join:' ' }}"
-            >
-              <td class="px-4 py-3">
-                <div class="flex gap-3">
-                  <div class="flex h-6 shrink-0 items-center">
-                    <div class="group grid size-4 grid-cols-1">
-                      <input id="selected_{{station_id}}" data-station-id="{{ station_id }}" aria-describedby="station{{ station_id }}-description" name="station{{ station_id }}" type="checkbox" class="col-start-1 row-start-1 appearance-none rounded border border-slate-300 bg-white checked:border-emerald-500 checked:bg-emerald-500 checked:focus:bg-emerald-500 checked:hover:bg-emerald-500 indeterminate:border-emerald-500 indeterminate:bg-emerald-500 focus:ring-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:border-slate-300 disabled:bg-slate-100 disabled:checked:bg-slate-100 forced-colors:appearance-auto">
-                      <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-[:disabled]:stroke-slate-950/25" viewBox="0 0 14 14" fill="none">
-                        <path class="opacity-0 group-has-[:checked]:opacity-100" d="M3 8L6 11L11 3.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <path class="opacity-0 group-has-[:indeterminate]:opacity-100" d="M3 7H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="text-sm/6">
-                    <label for="station{{ station_id }}" class="font-normal text-slate-800">{{ station.name }}</label>
-                  </div>
-                </div>
-              </td>
-              <td class="px-4 py-3">
-                <div id="electrifyState" class="flex items-center space-x-2">
-                  <input type="hidden"   {{form.is_electrified|widget_attrs}}>
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-elektrifizieren hover:shadow-lg"
-                    data-color="emerald"
-                    data-value="elektrifizieren"
-                    data-station-id="{{ station_id }}"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <path d="M8.36842 4L6 8.16901H10L7.78947 12"/>
-                        <circle cx="8" cy="8" r="7.5"/>
-                      </svg>
-                    </span>
-                        {% translate 'Elektrifizieren' %}
-                  </button>
-                  <input type="hidden"  {{form.is_electrifiable|widget_attrs}}>
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-automatisch hover:shadow-lg"
-                    data-color="amber"
-                    data-value="automatisch"
-                    data-station-id="{{ station_id }}"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <path d="M8.36842 4L6 8.16901H10L7.78947 12" />
-                        <circle cx="8" cy="8" r="7.5" stroke-dasharray="3 3"/>
-                      </svg>
-                    </span>
-                        {% translate 'Automatisch' %}
-                  </button>
-                  {# Not electrified does not got an input since it is the default. The state is implied through the other two inputs. #}
-                      <!-- Placeholder for tailwind classes which are added through js magic. The tailwind does not pick up bg-${color}-100.
-                    This way the tailwind-cli picks them up. The other colors are already "known"  -->
-                    <div class="hidden bg-gray-100  text-gray-700 "></div>
-                  <button type="button"
-                    class="inline-flex items-center py-1 px-2 bg-white font-semibold text-sm text-slate-500 rounded-full station-btn-nicht-elektrifizieren hover:shadow-lg"
-                    data-color="gray"
-                    data-value="nicht-elektrifizieren"
-                    data-station-id="{{ station_id }}"
-                  >
-                    <span class="pr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                        <circle cx="8" cy="8" r="7.5" />
-                        <path d="M3 3.5L12.5 13" />
-                      </svg>
-                    </span>
-                        {% translate 'Nicht elektr.' %}
-                  </button>
-                </div>
-              </td>
-              <td>
-                <div
-                  class="mr-4"
-                  data-input="charging-power"
-                >
-                  <input
-                          {{form.amount_charging_places|widget_attrs}}
-                          onchange="setChargingPointsCount()"
-                    aria-label="Anzahl an Ladepunkten"
-                    class="block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6"
-                    placeholder="0"
-                  >
-                </div>
-              </td>
-              <td>
-                <div
-                  class="mr-4"
-                  data-input="charging-power"
-                >
-                  <div class="flex items-center rounded-md outline outline-1 outline-transparent">
-                    <input {{ form.power_per_charger|widget_attrs }} class="inp-charge-power block w-full bg-white min-w-0 grow mr-2 px-2 py-1.5 border-slate-400 rounded-md text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-0 focus:border-emerald-400 sm:text-sm/6" placeholder="{{ charging_power_form.default_charge_power.value }}" aria-describedby="price-currency">
-                    <div id="chargingCapacityUnit" class="shrink-0 select-none text-sm text-slate-500">kW</div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-              {% endwith %}
-              {% endwith %}
-            {%  endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
       <button id="submitButton" onclick="validate()" hidden></button>
     </form>
   </section>
-  <script>
-      function validate() {
-          clearStationSearch();
-          clearFilter();
-          setAllRowsVisible();
-      }
-      function clearStationSearch(){
-          stationSearch.value = "";
-      }
-      function clearFilter(){
-          let selectedLineDivs = select_container.querySelectorAll('span:not([id="line-filter"])')
-          selectedLineDivs.forEach((element)=> element.remove())
-      }
-      function setAllRowsVisible(){
-          rows.forEach((row)=>row.classList.remove("hidden"));
-      }
-
-  </script>
-
 </div>
 </main>
 {% endblock wizard_content %}
 
 {% block wizard_buttons %}
-
 {% url 'simba:vehicles' scenario.task_id as prev_url %}
 {% with "submitButton" as buttonId %}
   {{ block.super }}
-  {%  endwith %}
+{% endwith %}
 {% endblock wizard_buttons %}
 
 {% block script %}
-  <script>
-      const rows = document.querySelectorAll(".station-row");
-      const select_container = document.getElementById("multiselect-container");
-      const stationSearch = document.getElementById("stationSearch")
-      stationSearch.addEventListener("input", (e)=>{
-          // use the debounced function so fast typing does not trigger new events each time
-          debouncedSetRowsHidden();
-
-      })
-
-      function debounce(func, timeout = 300) {
-          let timer;
-          // return a debounced function, which can be called with any args
-          return (...args) => {
-              // clear the previous timer
-              clearTimeout(timer);
-              // after the duration of timeout call the function
-              timer = setTimeout(() => {
-                  func.apply(this, args);
-              }, timeout);
-          };
-      }
-
-      const debouncedSetRowsHidden = debounce(setRowsHidden, 200);
-
-      function setRowsHidden() {
-          console.log("fired")
-          const selectedDivs = select_container.querySelectorAll("[data-value]");
-          const searchLines = Array.from(selectedDivs).map((x) => x.getAttribute("data-value"));
-          const searchString = stationSearch.value.toString().toLowerCase();
-          const selectAll = document.getElementById("selectAll");
-          rows.forEach((row) => {
-              if (filterElement(row, searchString, searchLines)) {
-                  row.classList.remove("hidden");
-              } else {
-                  row.classList.add("hidden");
-                  // deselect hidden row
-                  let stationId = row.getAttribute("data-station-id");
-                  let select = document.getElementById("selected_" + stationId);
-                  if (select && select.checked) {
-                    select.checked = false;
-                    selectAll.checked = false;
-                  }
-              }
-        })
-
-    }
-
-
-
-    // Merged filtering of the station rows by appling search and line filter
-    function filterElement(element, searchString, lines){
-         if (!element.getAttribute("data-value").toString().toLowerCase().includes(searchString)){
-             // element does not contain search string
-             return false
-        }
-        if (lines.length==0){
-            // no lines for filtering
-            return true;
-        }
-        let stationLines = element.getAttribute("data-lines")
-        // check if at least a single line matches the filter lines
-        let containsLines = lines.some((line)=>{
-            return stationLines.includes(line)})
-        return containsLines
-    }
-
-    // Since the content of the multiselect-container is changed via, js no event is fired
-    // the observer still reacts to changes /mutations
-    const observer = new MutationObserver((mutations) => {
-        setRowsHidden()
-    });
-    observer.observe(select_container, { childList: true, subtree: true, characterData: true });
-
-      function setFormsRequired(isRequired, inputDivs) {
-          inputDivs.forEach((input) => {
-              input.required = isRequired;
-          });
-      }
-      function setFormValuesNull(inputDivs) {
-          inputDivs.forEach((input) => {
-              input.value = null;
-          });
-      }
-
-      function setRowFormsRequiredByState() {
-          rows.forEach((row) => {
-
-              const inputs = row.querySelectorAll('input:not([id*="select"])')
-              const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
-              if (isElectrifiedDiv.value==="true"){
-                  setFormsRequired(true, inputs);
-              } else{
-                  setFormsRequired(false,inputs)
-              }
-          });
-      }
-
-      function setInitialStateOfButtons() {
-          rows.forEach((row) => {
-              const isElectrifiedDiv = row.querySelector('input[id$="is_electrified"]')
-
-              const isElectrifiableDiv = row.querySelector('input[id$="is_electrifiable"]')
-              isElectrifiedDiv.checked = false;
-              isElectrifiableDiv.checked = false;
-              var button;
-              if (isElectrifiedDiv.value === 'true') {
-                  button = row.querySelector('[data-value="elektrifizieren"]');
-              } else if (isElectrifiableDiv.value === 'true') {
-                  button = row.querySelector('[data-value="automatisch"]');
-              } else {
-                  button = row.querySelector('[data-value="nicht-elektrifizieren"]');
-              }
-              // click the button according to the passed inputs.
-              button.click();
-          })
-
-      }
-
-        function countElectrifiedStations(){
-            let sum=0;
-            rows.forEach((row)=>{
-                const electrifiedDiv = row.querySelector("input[id$='is_electrified']")
-                if (electrifiedDiv.value==="true"){
-                    sum+=1;
-                };
-
-            })
-            return sum;
-        }
-
-        function countChargingPoints() {
-            let sum = 0;
-            rows.forEach((row) => {
-                const amountDiv = row.querySelector("input[id$='amount_charging_places']")
-                const isElectrifiedDiv=row.querySelector("input[id$='is_electrified']")
-                if (isElectrifiedDiv.value==="true" && amountDiv.value !=="") {
-                    sum += parseInt(amountDiv.value);
-                }
-                ;
-
-            })
-            return sum;
-        }
-
-        function setElectrifiedCount(){
-            const countDiv = document.getElementById("countElectrifiedTotal");
-            const total=rows.length;
-            const electrified = countElectrifiedStations(rows);
-            countDiv.innerHTML = "( "+electrified+" / "+total+" )"
-        }
-
-        function setChargingPointsCount(){
-            const countDiv = document.getElementById("countChargingPlacesTotal");
-            const charginPoints = countChargingPoints();
-            countDiv.innerHTML = "(" + charginPoints + ")"
-        }
-
-        function updateCounts() {
-            setChargingPointsCount();
-            setElectrifiedCount();
-        }
-
-      function updateDefaultChargePower() {
-        let value = document.getElementById('id_default_charge_power').value;
-        for (let e of document.getElementsByClassName( 'inp-charge-power')) {
-          e.placeholder = value;
-        }
-      }
-      updateDefaultChargePower();
-
-
-      function styleRowButtonsToState(clickedButton, buttons) {
-          // Reset all buttons in the row to their unselected state
-          for (let btn of buttons) {
-              const color = btn.getAttribute("data-color");
-              btn.classList.remove("shadow", "selected", "border-gray-700", "border-2", );
-              btn.classList.replace(`bg-${color}-100`, "bg-white");
-              btn.classList.replace(`text-${color}-700`, "text-slate-500");
-          };
-
-          // Apply selected styles to the clicked button
-          const color = clickedButton.getAttribute("data-color");
-          clickedButton.classList.add("shadow", "selected", "border-gray-700","border-2", );
-          clickedButton.classList.replace("bg-white", `bg-${color}-100`);
-          clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
-      }
-
-</script>
-
 <script>
-// Multi-select dropdown functionality
-document.addEventListener("DOMContentLoaded", () => {
-  const multiselectContainer = document.getElementById("multiselect-container");
-  const dropdownList = document.getElementById("dropdown-list");
-  const lineFilter = document.getElementById("line-filter");
+  const rows = document.querySelectorAll(".station-row");
+  const stationSearch = document.getElementById("stationSearch");
+  const TOTAL_STATIONS = rows.length;
+  let currentStatusFilter = "all";
+  // "Voreinstellung für alle" the user last explicitly applied. Used to know what
+  // "Abweichungen zurücksetzen" should reset back to, and which preset button stays
+  // highlighted even after some stations have been overridden individually.
+  let lastPreset = "auto";
 
-  // Function to toggle line filter visibility
-    function toggleLineFilter() {
-      const hasItems = multiselectContainer.querySelectorAll("[data-value]").length > 0;
-      if (hasItems) {
-        lineFilter.classList.add("hidden");
-      } else {
-        lineFilter.classList.remove("hidden");
-      }
-    }
+  function validate() {
+    stationSearch.value = "";
+    setStatusFilter("all");
+  }
 
-    // Show/hide dropdown list on container click
-    multiselectContainer.addEventListener("click", () => {
-      dropdownList.classList.toggle("hidden");
-    });
-
-    // Add click listeners to dropdown options
-    dropdownList.querySelectorAll("li").forEach((option) => {
-      option.addEventListener("click", () => {
-        const value = option.getAttribute("data-value");
-
-        // Check if the item is already selected
-        if (
-          !Array.from(multiselectContainer.children).some(
-            (child) => child.dataset && child.dataset.value === value
-          )
-        ) {
-          // Create pill element
-          const pill = document.createElement("span");
-          pill.dataset.value = value;
-          pill.className =
-            "flex items-center bg-slate-200 text-sm text-slate-800 rounded-full px-3 mr-2 my-1";
-          pill.innerHTML = `${value} <span class="ml-2 cursor-pointer text-slate-500 hover:text-red-500">&times;</span>`;
-
-          // Add pill to the container
-          multiselectContainer.appendChild(pill);
-
-          // Add event listener to remove pill
-          pill.querySelector("span").addEventListener("click", (e) => {
-            e.stopPropagation();
-            pill.remove();
-            toggleLineFilter(); // Check line filter visibility after removing
-          });
-
-          toggleLineFilter(); // Check line filter visibility after adding
-        }
-      });
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!multiselectContainer.contains(e.target) && !dropdownList.contains(e.target)) {
-        dropdownList.classList.add("hidden");
-      }
-    });
-  });
-</script>
-
-<script>
-// Implement bulk mutation
-document.addEventListener("DOMContentLoaded", () => {
-    const bulkSelection = document.getElementById("bulkSelection");
-    const buttons = bulkSelection.querySelectorAll("button");
-    const prefix = "bulk_";
-    const bulkInputContainer = document.getElementById("bulkInputContainer");
-
-    buttons.forEach((button) => {
-        button.addEventListener("click", () => {
-            styleRowButtonsToState(button,buttons);
-            const value = button.getAttribute("data-value");
-            if (value === "elektrifizieren") {
-                document.getElementById(prefix + "is_electrified").value = true;
-                document.getElementById(prefix + "is_electrifiable").value = true;
-                bulkInputContainer.hidden = false;
-
-            } else if (value === "nicht-elektrifizieren") {
-                // Hide all inputs for "Nicht elektrifizieren"
-                document.getElementById(prefix + "is_electrified").value = false;
-                document.getElementById(prefix + "is_electrifiable").value = false;
-                bulkInputContainer.hidden = true;
-
-
-            } else if (value === "automatisch") {
-                document.getElementById(prefix + "is_electrified").value = false;
-                document.getElementById(prefix + "is_electrifiable").value = true;
-                bulkInputContainer.hidden = true;
-            }
-        })
-    })
-
-    const bulk_submit = document.getElementById("bulk_submit_button");
-    console.assert(bulk_submit);
-    const rows = document.querySelectorAll(".station-row");
-    bulk_submit.onclick = (e)=> {
-        let value=null;
-        if (document.getElementById("bulk_is_electrified").value==="true"){
-            console.assert(document.getElementById("bulk_is_electrifiable").value==="true")
-            value="elektrifizieren"
-        } else if (document.getElementById("bulk_is_electrifiable").value==="false"){
-            console.assert(document.getElementById("bulk_is_electrified").value==="false")
-            value="nicht-elektrifizieren"
-        } else {
-            value ="automatisch"
-        }
-        let num_charging = document.getElementById("bulk_chargingPointNumber")
-        let charging_capacity = document.getElementById("bulk_chargingCapacity")
-        const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked']);
-    if (!num_charging.checkValidity() || !charging_capacity.checkValidity()) {
-        if (!num_charging.checkValidity()) {
-            num_charging.reportValidity();
-        }
-        if (!charging_capacity.checkValidity()) {
-            charging_capacity.reportValidity();
-        }
-        return
-        };
-        selected_checkboxes.forEach((checkbox)=>{
-            const station_id = checkbox.getAttribute("data-station-id");
-            const button = document.querySelector('[data-station-id="'+station_id+'"][data-value='+value+']')
-            console.assert(button);
-            button.click();
-            if (value==="elektrifizieren"){
-                const prefix = "id_station_"+station_id+"-";
-                const inputAmountChargingPlaces = document.getElementById(prefix+"amount_charging_places");
-                const inputChargingCapacity = document.getElementById(prefix+"power_per_charger");
-                console.assert(inputAmountChargingPlaces);
-                console.assert(inputChargingCapacity);
-                inputAmountChargingPlaces.value= num_charging.value;
-                inputChargingCapacity.value = charging_capacity.value;
-            }
-        })
+  function debounce(func, timeout = 300) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, timeout);
     };
-});
+  }
 
-// Update all rows button functionality
-document.addEventListener("DOMContentLoaded", _ => {
-  // find top row buttons by class
-  const buttons = document.getElementsByClassName("all-station-btn");
-  for (let button of buttons) {
-    button.addEventListener("click", _ => {
-      const value = button.getAttribute("data-value");
-      const affectedButtons = document.getElementsByClassName("station-btn-" + value);
-
-      // get ID from selected checkboxes
-      const selected_checkboxes = document.querySelectorAll(['input[type="checkbox"][id^="selected_"]:checked']);
-      const selected_ids = Array.prototype.map.call(
-        selected_checkboxes, chk=>chk.getAttribute("data-station-id"));
-
-      // change state of station rows (only selected/visible)
-      for (let affectedButton of affectedButtons) {
-        const stationId = affectedButton.getAttribute("data-station-id");
-        if (selected_checkboxes.length > 0) {
-          // checkboxes selected: is this row selected?
-          if (selected_ids.includes(stationId))
-            affectedButton.click();
-        } else {
-          // no checkboxes selected: is this row visible?
-          // (if not, filter is applied and this row should not be changed)
-          let row = document.querySelector('tr[data-station-id="' + stationId + '"]');
-          if (!row.classList.contains("hidden"))
-            affectedButton.click();
-        }
-      }
+  function setFormValuesNull(inputDivs) {
+    inputDivs.forEach((input) => {
+      input.value = null;
     });
   }
-});
 
-// Electrify state button functionality
-document.addEventListener("DOMContentLoaded", () => {
-    const rows = document.querySelectorAll(".station-row");
+  function styleRowButtonsToState(clickedButton, buttons) {
+    // Reset all buttons in the group to their unselected state
+    for (let btn of buttons) {
+      const color = btn.getAttribute("data-color");
+      btn.classList.remove("shadow", "selected", "border-gray-700", "border-2");
+      btn.classList.replace(`bg-${color}-100`, "bg-white");
+      btn.classList.replace(`text-${color}-700`, "text-slate-500");
+    }
 
-    rows.forEach((row) => {
-        const buttons = row.querySelectorAll("button");
-        const inputContainers = row.querySelectorAll("[data-input]");
+    // Apply selected styles to the clicked button
+    const color = clickedButton.getAttribute("data-color");
+    clickedButton.classList.add("shadow", "selected", "border-gray-700", "border-2");
+    clickedButton.classList.replace("bg-white", `bg-${color}-100`);
+    clickedButton.classList.replace("text-slate-500", `text-${color}-700`);
+  }
 
-        buttons.forEach((button) => {
-            button.addEventListener("click", () => {
-                const value = button.getAttribute("data-value");
-                const stationId = button.getAttribute("data-station-id");
-                console.assert(stationId)
-                const prefix = "id_station_" + stationId + "-"
-                // set the inputs accordingly to selected button
-                styleRowButtonsToState(button, buttons);
+  function updateDefaultChargePower() {
+    const value = document.getElementById("id_default_charge_power").value;
+    for (let e of document.getElementsByClassName("inp-charge-power")) {
+      e.placeholder = value;
+    }
+  }
+  updateDefaultChargePower();
 
-                // Get all the inputs of the row. Needed to set requirment. Not for "selected" checkbox
-                const allRowInputs = row.querySelectorAll("input:not([id*=select])")
+  // -- Summary (LEVEL 1 + LEVEL 2), derived entirely from the rows' current state --
 
-                if (value === "elektrifizieren") {
-                    document.getElementById(prefix + "is_electrified").value = true;
-                    document.getElementById(prefix + "is_electrifiable").value = true;
+  /**
+   * A row's electrification state, read back from its two hidden inputs. Values are the
+   * literal strings "true"/"false" (both from the server-rendered initial value and from
+   * every click handler below) because these fields are BooleanFields rendered as
+   * type="hidden" -- Django's CheckboxInput.value_from_datadict() lowercases and maps
+   * "true"/"false" back to booleans server-side, so the string form must match exactly.
+   * @param {Element} row - a ".station-row" <tr>
+   * @returns {"always"|"auto"|"never"}
+   */
+  function getRowState(row) {
+    const electrified = row.querySelector('input[id$="is_electrified"]').value === "true";
+    const electrifiable = row.querySelector('input[id$="is_electrifiable"]').value === "true";
+    if (electrified) return "always";
+    if (electrifiable) return "auto";
+    return "never";
+  }
 
-                } else if (value === "nicht-elektrifizieren") {
-                    setFormValuesNull(allRowInputs);
-                    // Hide all inputs for "Nicht elektrifizieren"
-                    document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").value = false;
+  function countsByState() {
+    const counts = { always: 0, auto: 0, never: 0 };
+    rows.forEach((row) => counts[getRowState(row)]++);
+    return counts;
+  }
 
-                } else if (value === "automatisch") {
-                    setFormValuesNull(allRowInputs);
-                    document.getElementById(prefix + "is_electrified").value = false;
-                    document.getElementById(prefix + "is_electrifiable").value = true;
+  /**
+   * The scenario-wide mode shown in the Level 1 badge/sentence: one of the three pure presets
+   * if every row currently agrees, otherwise "custom".
+   * @param {Object} counts - per-state row counts, see countsByState()
+   * @returns {"always"|"auto"|"never"|"custom"}
+   */
+  function computeMode(counts) {
+    if (TOTAL_STATIONS === 0) return "auto";
+    if (counts.always === TOTAL_STATIONS) return "always";
+    if (counts.never === TOTAL_STATIONS) return "never";
+    if (counts.auto === TOTAL_STATIONS) return "auto";
+    return "custom";
+  }
 
+  const MODE_BADGE = {
+    auto: { label: "{% translate 'Automatisch' %}", classes: "bg-amber-100 text-amber-700" },
+    always: { label: "{% translate 'Alle elektrifiziert' %}", classes: "bg-emerald-100 text-emerald-700" },
+    never: { label: "{% translate 'Keine Elektrifizierung' %}", classes: "bg-gray-100 text-gray-700" },
+    custom: { label: "{% translate 'Individuell' %}", classes: "bg-indigo-100 text-indigo-800" },
+  };
 
-                } else {
-                    console.assert(false, {error: "Unexpected data-value from button"});
-                }
-            updateCounts();
+  const PRESET_LABEL = {
+    auto: "{% translate 'Automatisch' %}",
+    never: "{% translate 'Keine' %}",
+  };
 
+  function modeSentence(mode, counts) {
+    if (mode === "auto") {
+      return `{% translate "WeBus entscheidet für jede der" %} ${TOTAL_STATIONS} {% translate "Endhaltestellen selbst, ob eine Ladestation nötig ist. Du musst nichts weiter einstellen." %}`;
+    }
+    if (mode === "always") {
+      return `{% translate "Alle" %} ${TOTAL_STATIONS} {% translate "Endhaltestellen erhalten eine Ladestation – auch dort, wo die Simulation keine braucht." %}`;
+    }
+    if (mode === "never") {
+      return `{% translate "Keine Endhaltestelle wird elektrifiziert. Die Simulation lädt ausschließlich im Depot." %}`;
+    }
+    return `{% translate "Einzelne Haltestellen weichen von der Voreinstellung" %} „${PRESET_LABEL[lastPreset]}“ {% translate "ab" %}: ${counts.always} {% translate "immer" %}, ${counts.auto} {% translate "automatisch" %}, ${counts.never} {% translate "nie" %}.`;
+  }
 
-                // Show/hide input containers based on the selected button
-                inputContainers.forEach((container) => {
-                    if (value === "elektrifizieren") {
+  function updateSummary() {
+    const counts = countsByState();
+    const mode = computeMode(counts);
+    const badge = MODE_BADGE[mode];
 
-                        // Show inputs for "Elektrifizieren"
-                        container.classList.remove("hidden");
-                    } else if (value === "nicht-elektrifizieren") {
-                        // Hide all inputs for "Nicht elektrifizieren"
-                        container.classList.add("hidden");
-                    } else if (value === "automatisch") {
-                        // Show default behavior for "Automatisch"
-                        container.classList.add("hidden");
-                    } else {
-                        console.assert(false, {error: "Unexpected data-value from button"});
-                    }
-                });
-            });
-        });
+    const badgeEl = document.getElementById("modeBadge");
+    badgeEl.textContent = badge.label;
+    badgeEl.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide " + badge.classes;
 
+    document.getElementById("modeSentence").textContent = modeSentence(mode, counts);
+    document.getElementById("countAlways").textContent = counts.always;
+    document.getElementById("countAuto").textContent = counts.auto;
+    document.getElementById("countNever").textContent = counts.never;
+
+    document.getElementById("resetDeviationsButton").classList.toggle("hidden", mode !== "custom");
+    document.getElementById("globalPowerCard").classList.toggle("hidden", mode === "never");
+
+    const autoBtn = document.getElementById("presetAutoButton");
+    const neverBtn = document.getElementById("presetNeverButton");
+    styleRowButtonsToState(lastPreset === "auto" ? autoBtn : neverBtn, [autoBtn, neverBtn]);
+  }
+
+  function applyPreset(value) {
+    console.assert(value === "auto" || value === "never", { error: "Unexpected preset value", value });
+    lastPreset = value;
+    const buttonSelector = value === "auto" ? ".station-btn-automatisch" : ".station-btn-nicht-elektrifizieren";
+    rows.forEach((row) => row.querySelector(buttonSelector).click());
+    updateSummary();
+  }
+
+  function resetDeviations() {
+    applyPreset(lastPreset);
+  }
+
+  // -- LEVEL 3 filtering: free-text search (station name or line) plus a status chip --
+
+  function updateTileHighlight() {
+    const tileByStatus = { always: "tileAlways", auto: "tileAuto", never: "tileNever" };
+    Object.entries(tileByStatus).forEach(([status, id]) => {
+      const tile = document.getElementById(id);
+      const active = currentStatusFilter === status;
+      tile.classList.toggle("bg-slate-50", active);
+      tile.classList.toggle("bg-white", !active);
+      tile.classList.toggle("border-t-slate-800", active);
+      tile.classList.toggle("border-t-transparent", !active);
     });
-//now that the buttons have click functionality set the state by clicking them according to the input
-    setInitialStateOfButtons();
-    updateCounts();
-});
+  }
 
-</script>
+  function applyRowVisibility() {
+    const searchTerm = stationSearch.value.trim().toLowerCase();
+    let visibleCount = 0;
+    rows.forEach((row) => {
+      const matchesSearch =
+        !searchTerm ||
+        row.getAttribute("data-value").toLowerCase().includes(searchTerm) ||
+        row.getAttribute("data-lines").toLowerCase().includes(searchTerm);
+      const matchesStatus = currentStatusFilter === "all" || getRowState(row) === currentStatusFilter;
+      const visible = matchesSearch && matchesStatus;
+      row.classList.toggle("hidden", !visible);
+      if (visible) visibleCount++;
+    });
+    document.getElementById("visibleCountLabel").textContent =
+      `${visibleCount} {% translate "von" %} ${TOTAL_STATIONS} {% translate "geladenen Haltestellen" %}`;
+  }
 
+  const debouncedApplyRowVisibility = debounce(applyRowVisibility, 200);
+  stationSearch.addEventListener("input", debouncedApplyRowVisibility);
 
-<script>
-  // Select all checkboxes of table when the selectAll checkbox is checked
+  function setStatusFilter(status) {
+    currentStatusFilter = status;
+    document.querySelectorAll(".status-filter-btn").forEach((btn) => {
+      const active = btn.getAttribute("data-status-filter") === status;
+      btn.classList.toggle("bg-slate-200", active);
+      btn.classList.toggle("text-slate-800", active);
+      btn.classList.toggle("text-slate-500", !active);
+    });
+    updateTileHighlight();
+    applyRowVisibility();
+  }
+
+  // -- Per-row electrification toggle --
+
+  function setInitialStateOfButtons() {
+    rows.forEach((row) => {
+      // Clicking the matching button (rather than restyling directly) reuses the exact same
+      // code path a user interaction takes, so the row's visuals and hidden inputs can never
+      // drift out of sync with each other.
+      const state = getRowState(row);
+      const buttonValue = { always: "elektrifizieren", auto: "automatisch", never: "nicht-elektrifizieren" }[state];
+      row.querySelector(`[data-value="${buttonValue}"]`).click();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    const selectAll = document.getElementById("selectAll");
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    rows.forEach((row) => {
+      const buttons = row.querySelectorAll("button");
+      const inputContainers = row.querySelectorAll('[data-input="charging-power"]');
+      const hintSpans = row.querySelectorAll('[data-input="static-hint"]');
 
-    selectAll.addEventListener("change", () => {
-      checkboxes.forEach((checkbox) => {
-          // check for visibility
-          if (checkbox.offsetParent){
-              checkbox.checked = selectAll.checked;
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const value = button.getAttribute("data-value");
+          const stationId = button.getAttribute("data-station-id");
+          const prefix = "id_station_" + stationId + "-";
+          styleRowButtonsToState(button, buttons);
+
+          // amount_charging_places/power_per_charger only apply to an always-electrified
+          // station; the backend discards them otherwise (see update_stations_and_exclusion),
+          // so they're cleared here whenever a row leaves that state.
+          const allRowInputs = row.querySelectorAll("input");
+
+          if (value === "elektrifizieren") {
+            document.getElementById(prefix + "is_electrified").value = true;
+            document.getElementById(prefix + "is_electrifiable").value = true;
+          } else if (value === "nicht-elektrifizieren") {
+            setFormValuesNull(allRowInputs);
+            document.getElementById(prefix + "is_electrified").value = false;
+            document.getElementById(prefix + "is_electrifiable").value = false;
+          } else if (value === "automatisch") {
+            setFormValuesNull(allRowInputs);
+            document.getElementById(prefix + "is_electrified").value = false;
+            document.getElementById(prefix + "is_electrifiable").value = true;
+          } else {
+            console.assert(false, { error: "Unexpected data-value from button" });
           }
+
+          // Only an always-electrified station has editable charging points/power —
+          // for the other two states the backend ignores whatever these inputs hold,
+          // so show why instead of a dead input.
+          inputContainers.forEach((container) => container.classList.toggle("hidden", value !== "elektrifizieren"));
+          hintSpans.forEach((span) => {
+            span.classList.toggle("hidden", value === "elektrifizieren");
+            span.textContent = value === "automatisch" ? "{% translate 'wird berechnet' %}" : "–";
+          });
+
+          updateSummary();
+        });
       });
     });
+
+    // Now that the buttons have click functionality, set the state by clicking them
+    // according to each station's saved value.
+    setInitialStateOfButtons();
+
+    // lastPreset seeds "Abweichungen zurücksetzen": if the scenario already is a pure
+    // preset, that's the base to reset to; otherwise default to "Automatisch".
+    lastPreset = computeMode(countsByState()) === "never" ? "never" : "auto";
+
+    updateSummary();
+    setStatusFilter("all");
   });
-
-  // Display bulkEditingButton when checkboxes are selected
-  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-  document.addEventListener("DOMContentLoaded", () => {
-    const bulkEditingButton = document.getElementById("bulkEditingButton");
-    const selectAll = document.getElementById("selectAll");
-
-    function toggleBulkEditingButton(){
-        const checkedCheckboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-
-        if (checkedCheckboxes.length > 0) {
-          bulkEditingButton.disabled=false;
-        } else {
-          bulkEditingButton.disabled=true;
-        };
-
-        // change state of "select all" checkbox based on other checkboxes
-        // all selected: check "select all", otherwise uncheck it
-        // off-by-one if "select all" itself is checked
-        selectAll.checked = (checkedCheckboxes.length - selectAll.checked) == (checkboxes.length - 1);
-    }
-    checkboxes.forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        toggleBulkEditingButton()
-      })
-    })
-    //  prime the button to the correct state
-    toggleBulkEditingButton();
-  });
-
-
-  // Open modal when bulkEditingButton is clicked while using animation from modal comment
-  document.addEventListener("DOMContentLoaded", () => {
-    const bulkEditingButton = document.getElementById("bulkEditingButton");
-    const modal = document.getElementById("bulkEditingModal");
-    const closeBulkEditingModalIcon = document.getElementById("closeBulkEditingModalIcon");
-    const closeBulkEditingModalButton = document.getElementById("closeBulkEditingModalButton");
-
-    bulkEditingButton.addEventListener("click", () => {
-      modal.classList.remove("hidden");
-    });
-
-    closeBulkEditingModalIcon.addEventListener("click", () => {
-      modal.classList.add("hidden");
-    });
-
-    closeBulkEditingModalButton.addEventListener("click", () => {
-      modal.classList.add("hidden");
-    });
-  });
-
-  // Close modal when clicking outside of it
-  document.addEventListener("click", (e) => {
-    const modal = document.getElementById("bulkEditingModal");
-    const modalContent = modal.querySelector(".relative");
-
-    if (!modalContent.contains(e.target) && !bulkEditingButton.contains(e.target)) {
-      modal.classList.add("hidden");
-    }
-  });
-
 </script>
-
 {% endblock script %}
