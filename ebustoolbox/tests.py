@@ -28,6 +28,8 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    BatteryType,
+    ChargingPointType,
     DepotConfigurationWish,
     Notification,
     Route,
@@ -1447,3 +1449,83 @@ class ZipValidationTest(SimpleTestCase):
                 validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
             with self.assertRaises(ZipFileException):
                 validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
+
+
+class EflipsImpactParameterTest(TestCase):
+    """The rows and parameters the toolchain prepares for eflips-impact before it calculates."""
+
+    def setUp(self):
+        self.scenario = Scenario.objects.create(name="scenario", task_id=get_unique_task_id())
+        self.battery_type = BatteryType.objects.create(
+            scenario=self.scenario, specific_mass=6.0, chemistry="LFP"
+        )
+        self.vehicle_type = VehicleType.objects.create(
+            scenario=self.scenario,
+            name="Gelenkbus",
+            name_short="AB",
+            battery_type=self.battery_type,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+        )
+        # pick up the database defaults of the parameter columns
+        self.scenario.refresh_from_db()
+        self.vehicle_type.refresh_from_db()
+        self.battery_type.refresh_from_db()
+
+    def test_charging_point_types_take_the_values_of_the_costs_page(self):
+        self.scenario.tco_parameters.update(
+            {
+                "useful_life_chargepoint_depot": 10,
+                "procurement_cost_chargepoint_depot": 50000.0,
+                "useful_life_chargepoint_opp": 12,
+                "procurement_cost_chargepoint_opp": 250000.0,
+                "cost_escalation_chargepoint": 0.03,
+            }
+        )
+        self.scenario.save()
+
+        tasks.ensure_charging_point_types(self.scenario)
+        # a second simulation pass reuses the rows
+        tasks.ensure_charging_point_types(self.scenario)
+
+        charging_point_types = ChargingPointType.objects.filter(scenario=self.scenario)
+        self.assertEqual(charging_point_types.count(), 2)
+        depot = charging_point_types.get(name_short="DCS")
+        self.assertEqual(
+            depot.tco_parameters,
+            {"useful_life": 10, "procurement_cost": 50000.0, "cost_escalation": 0.03},
+        )
+        opportunity = charging_point_types.get(name_short="OCS")
+        self.assertEqual(opportunity.tco_parameters["procurement_cost"], 250000.0)
+
+    def test_charging_point_types_keep_their_defaults_without_the_costs_page(self):
+        tasks.ensure_charging_point_types(self.scenario)
+        depot = ChargingPointType.objects.get(scenario=self.scenario, name_short="DCS")
+        self.assertEqual(depot.tco_parameters["useful_life"], 20)
+
+    def test_lca_parameters_follow_eflips_model_and_the_tco(self):
+        self.vehicle_type.tco_parameters["average_electricity_consumption"] = 1.3
+        self.vehicle_type.save()
+        tasks.ensure_charging_point_types(self.scenario)
+
+        tasks.ensure_lca_parameters(self.scenario)
+
+        self.vehicle_type.refresh_from_db()
+        parameters = self.vehicle_type.lca_parameters
+        # emission factors from eflips-model, consumption and lifetime from the TCO
+        self.assertIn("chassis_emission_factors_per_kg", parameters)
+        self.assertEqual(parameters["average_consumption_kwh_per_km"], 1.3)
+        self.assertEqual(
+            parameters["vehicle_lifetime_years"], self.vehicle_type.tco_parameters["useful_life"]
+        )
+        self.battery_type.refresh_from_db()
+        self.assertEqual(
+            self.battery_type.lca_parameters["battery_lifetime_years"],
+            self.battery_type.tco_parameters["useful_life"],
+        )
+        for cpt in ChargingPointType.objects.filter(scenario=self.scenario):
+            self.assertEqual(
+                cpt.lca_parameters["infrastructure_lifetime_years"],
+                cpt.tco_parameters["useful_life"],
+            )

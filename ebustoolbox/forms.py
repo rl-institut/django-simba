@@ -281,6 +281,8 @@ class ManualTcoForm(forms.Form):
     inflation_rate = forms.FloatField(initial=0.02, min_value=0, required=False)
     taxes = forms.FloatField(initial=0, min_value=0, required=False)  # € (vehicle tax)
     insurance = forms.FloatField(initial=2000, min_value=0, required=False)  # €/a
+    # share of the fleet available for service, the fleet is sized up accordingly
+    eta_avail = forms.FloatField(initial=1.0, min_value=1, max_value=100, required=False)
     pef_general = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_wages = forms.FloatField(initial=0.02, min_value=0, required=False)
     pef_energy = forms.FloatField(initial=0.02, min_value=0, required=False)

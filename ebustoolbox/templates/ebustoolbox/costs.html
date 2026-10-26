@@ -287,6 +287,10 @@
                   {% translate "Inflationsrate, Teuerung aller Güter bei gleichbleibendem Wert" as tooltip %}
                   {% translate "%" as unit %}
                   {% include "ebustoolbox/partials/cost_input.html" with label=label unit=unit tooltip=tooltip input=costs_manual.inflation_rate|widget_attrs initial=scenario.tco_parameters.inflation_rate|default:costs_manual.inflation_rate.initial|multiply:100 %}
+                  {% translate "Technische Verfügbarkeit" as label %}
+                  {% translate "Anteil der Fahrzeuge, der im Mittel einsatzbereit ist. Die beschaffte Flotte ist entsprechend größer als die simulierte" as tooltip %}
+                  {% translate "%" as unit %}
+                  {% include "ebustoolbox/partials/cost_input.html" with label=label unit=unit tooltip=tooltip input=costs_manual.eta_avail|widget_attrs initial=scenario.tco_parameters.eta_avail|default:costs_manual.eta_avail.initial|multiply:100 %}
                   {% translate "Kfz-Steuer" as label %}
                   {% translate "Durchschnittliche Kraftfahrzeugsteuer pro Jahr" as tooltip %}
                   {% translate "€" as unit %}
@@ -371,7 +375,7 @@
       return;
     let params = costParams[select.value].params;
     let perc_params = [  // percentage values, need to be multiplied by 100
-      'interest_rate', 'inflation_rate',
+      'interest_rate', 'inflation_rate', 'eta_avail',
       'pef_general', 'pef_wages', 'pef_energy', 'pef_fuel', 'pef_insurance',
       'cost_escalation_chargepoint', 'cost_escalation_bus', 'cost_escalation_battery',
     ];

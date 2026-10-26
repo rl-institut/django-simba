@@ -1165,6 +1165,7 @@ class CostsView(ScenarioMixIn, TemplateView):
                     "pef_energy": 0.01,
                     "pef_fuel": 0.01,
                     "pef_insurance": 0.01,
+                    "eta_avail": 0.01,
                     # not needed, but useful when restoring/loading values
                     "useful_life_chargepoint_depot": 1,
                     "procurement_cost_chargepoint_depot": 1,
@@ -1186,40 +1187,9 @@ class CostsView(ScenarioMixIn, TemplateView):
 
                 self.scenario.save(update_fields=["tco_parameters"])
 
-                # Station TCO
-                for station in self.scenario.station_set.all():
-                    if station.charge_type == EnumChargeType.DEPOT.value:
-                        station.tco_parameters = {
-                            "useful_life": int(form_data["useful_life_chargepoint_depot"]),
-                            "procurement_cost": form_data["procurement_cost_chargepoint_depot"],
-                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
-                        }
-                    elif station.charge_type == EnumChargeType.OPPORTUNITY.value:
-                        station.tco_parameters = {
-                            "useful_life": int(form_data["useful_life_chargepoint_opp"]),
-                            "procurement_cost": form_data["procurement_cost_chargepoint_opp"],
-                            "cost_escalation": form_data["cost_escalation_chargepoint"] / 100,
-                        }
-                    else:
-                        logger.warning(
-                            f"Station {station.name} has unknown "
-                            f"charge type: {station.charge_type}"
-                        )
-                        # Some stations are not properly configured by gtfs it seems
-                        # ensure values exist
-                        stco = station.tco_parameters
-                        stco["useful_life"] = stco["useful_life"] or 20
-                        stco["procurement_cost"] = stco["procurement_cost"] or 0
-                        stco["cost_escalation"] = stco["cost_escalation"] or 0.02
-                        station.save(update_fields=["tco_parameters"])
-
-                        continue
-                    station.save(update_fields=["tco_parameters"])
-                    # charging point type has identical parameters?
-                    cp_type = station.charging_point_type
-                    if cp_type is not None:
-                        cp_type.tco_parameters = station.tco_parameters
-                        cp_type.save(update_fields=["tco_parameters"])
+                # The charging point values above are priced per charging point by the
+                # toolchain, which creates the charging point types once the simulation
+                # has produced the areas and stations they belong to
 
                 # VehicleType/BatteryType TCO
                 # multiple vehicle types allowed -> multiple values in form
@@ -2082,6 +2052,13 @@ def get_tco(request, task_id: str):
     elif file_format == "csv":
         return HttpResponse(tco.to_csv(index=False), content_type="text/csv")
     return HttpResponse(status=400)
+
+
+def get_lca(request, task_id: str):
+    permission = AuthorizedMixIn.get_permission(request.user, task_id)
+    if not permission:
+        return HttpResponseForbidden(_("Sie haben keinen Zugriff auf diese Seite"))
+    return JsonResponse(data.get_lca(task_id))  # lca_result JSON field from Scenario
 
 
 def get_piecharts(request, task_id: str):

@@ -1759,6 +1759,12 @@ def get_tco(task_id: str) -> dict:
     return result
 
 
+def get_lca(task_id: str) -> dict:
+    # return lca_result JsonField of scenario
+    s = Scenario.objects.get(task_id=task_id)
+    return s.lca_result
+
+
 def get_combined_piecharts(task_id: str, filters=None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Returns two DataFrames:

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 import csv
+import json
 import shutil
 import traceback
 import warnings
@@ -38,7 +39,9 @@ from eflips.depot.api import (  # noqa
     simulate_scenario,
     generate_optimal_depot_layout,
 )
-from eflips.tco import calculate_tco
+from eflips.impact.lca import calculate_lca
+from eflips.impact.tco import calculate_tco
+import eflips.model
 
 import core.deepcopy
 from ebusdjango.util import get_static_file_path
@@ -53,7 +56,9 @@ from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
 from .models import (
     copy_model_instance,
+    Area,
     AreaInformation,
+    ChargingPointType,
     DepotConfigurationWish,
     EnumSimulationType,
     User,
@@ -1916,6 +1921,8 @@ def create_child_from_mutation(parent_scenario: Scenario, mutation: Scenario) ->
     child.simba_options.update(mutation.simba_options)
     if not child.simba_options:
         child.simba_options = vars(get_args(child))
+    # The costs page writes to the mutation, the child is a copy of the source
+    child.tco_parameters = mutation.tco_parameters or child.tco_parameters
     child.save()
 
     # Mutate child according to parent
@@ -2157,14 +2164,12 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.save()
 
-        # Calculate TCO. Needs vehicle (driving events) to be set.
+        # Calculate TCO and LCA. Needs vehicle (driving events) to be set.
         logger.info(f"S.ID:{db_scenario.id}:Running eFLIPS TCO {datetime.now()}")
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
-        tco_result = eflips_calculate_tco(db_scenario)  # on error: all values 1
-        db_scenario.tco_result = tco_result
-        db_scenario.save(update_fields=["tco_result"])
+        eflips_calculate_impact(db_scenario, progress)
 
         check_event_soc_consistency(db_scenario)
         db_scenario.refresh_from_db()
@@ -2493,13 +2498,91 @@ def run_eflips(scenario, delete_existing_depot, progress) -> None:
     )
 
 
-def eflips_calculate_tco(scenario: Scenario):
-    db_url = create_db_url()
+def get_scaling_factor(scenario: Scenario) -> float:
+    """Factor from the simulated period to a year, for eflips-impact.
+
+    Its own default divides the year by the span between the first and the last trip
+    departure. That is a fraction of a day for a one-day timetable, which would then count
+    several hundred times per year; whole days are what is meant.
+    """
+    span = Trip.objects.filter(scenario=scenario).aggregate(
+        start=Min("departure_time"), end=Max("arrival_time")
+    )
+    days = (span["end"] - span["start"]).total_seconds() / 86400
+    return 365.0 / max(1, math.ceil(days))
+
+
+# name_short: (name, suffix of the costs page values in Scenario.tco_parameters)
+CHARGING_POINT_TYPES = {
+    "DCS": ("Depot Charging Point", "depot"),
+    "OCS": ("Opportunity Charging Point", "opp"),
+}
+
+
+def ensure_charging_point_types(scenario: Scenario) -> None:
+    """Create a depot and an opportunity ChargingPointType and attach the simulated Areas
+    and Stations to them.
+
+    eflips-impact prices and assesses charging points through these rows, as many of them
+    as the simulated peak occupancy needs. The Areas only exist after the simulation, so
+    this cannot happen on the costs page; its values wait in Scenario.tco_parameters.
+    """
+    params = scenario.tco_parameters
+    for name_short, (name, kind) in CHARGING_POINT_TYPES.items():
+        cpt, _ = ChargingPointType.objects.get_or_create(
+            scenario=scenario, name_short=name_short, defaults={"name": name}
+        )
+        if f"procurement_cost_chargepoint_{kind}" in params:  # entered on the costs page
+            cpt.tco_parameters = {
+                "useful_life": params[f"useful_life_chargepoint_{kind}"],
+                "procurement_cost": params[f"procurement_cost_chargepoint_{kind}"],
+                "cost_escalation": params["cost_escalation_chargepoint"],
+            }
+            cpt.save(update_fields=["tco_parameters"])
+        if kind == "depot":
+            Area.objects.filter(scenario=scenario, processes__electric_power__isnull=False).update(
+                charging_point_type=cpt
+            )
+        else:
+            depot_stations = Depot.objects.filter(scenario=scenario).values_list(
+                "station_id", flat=True
+            )
+            Station.objects.filter(scenario=scenario, is_electrified=True).exclude(
+                id__in=depot_stations
+            ).update(charging_point_type=cpt)
+
+
+def eflips_calculate_impact(scenario: Scenario, progress: Progress) -> None:
+    """Calculate the TCO and the LCA with eflips-impact and store both on the scenario.
+
+    Neither is needed for the rest of the run, so a failure is logged and leaves the
+    result empty; the result page copes without it.
+    """
+    try:
+        scenario.tco_result = eflips_calculate_tco(scenario)
+        scenario.save(update_fields=["tco_result"])
+        logger.info(f"S.ID:{scenario.id}:Running eFLIPS LCA {datetime.now()}")
+        progress.status = _("Berechne Ökobilanz")
+        progress.save()
+        scenario.lca_result = eflips_calculate_lca(scenario)
+        scenario.save(update_fields=["lca_result"])
+    except Exception:
+        logger.error(f"S.ID:{scenario.id}:eflips-impact failed\n{traceback.format_exc()}")
+
+
+def eflips_calculate_tco(scenario: Scenario) -> dict:
+    """Calculate the TCO with eflips-impact.
+
+    :return: EUR per revenue kilometre by cost category, as the result page reads it.
+    """
+    # Read by eflips-impact without a fallback; scenarios from before it existed have none
+    scenario.tco_parameters.setdefault("eta_avail", 1.0)
+    scenario.save(update_fields=["tco_parameters"])
     # get vehicle type energy consumptions
     for vt in scenario.vehicletype_set.all():
         if vt.consumption is not None:
             # consumption set directly
-            vt.tco_parameters["const_energy_consumption"] = vt.consumption
+            consumption = vt.consumption
         else:
             # vehicle type consumption not set: calculate from driving events
             energy_kwh = sum(
@@ -2509,9 +2592,68 @@ def eflips_calculate_tco(scenario: Scenario):
                 ]
             )
             distance = vt.get_total_distance_km
-            vt.tco_parameters["const_energy_consumption"] = -energy_kwh / distance  # [kWh / km]
+            consumption = -energy_kwh / distance  # [kWh / km]
+        vt.tco_parameters["average_electricity_consumption"] = consumption
         vt.save(update_fields=["tco_parameters"])
-    return calculate_tco(scenario.id, db_url)
+    ensure_charging_point_types(scenario)
+    result = calculate_tco(
+        scenario.id, create_db_url(), scaling_factor=get_scaling_factor(scenario)
+    )
+    return {category.name: cost for category, cost in result.tco_by_type_per_revenue_km.items()}
+
+
+def eflips_model_default(table: str, column: str) -> dict:
+    """The default eflips-model declares for one of its JSONB columns.
+
+    The Django models mirror eflips-model's tables but not its server defaults. For the
+    LCA parameters that default is a complete set of emission factors, so it is taken
+    from there rather than copied.
+    """
+    return json.loads(getattr(eflips.model, table).__table__.c[column].server_default.arg)
+
+
+def ensure_lca_parameters(scenario: Scenario) -> None:
+    """Fill lca_parameters wherever eflips-impact reads them.
+
+    The emission factors are eflips-model's defaults. The consumption is the simulated one
+    and the lifetimes are those of the TCO, so that both calculations describe one fleet.
+    """
+    for vt in scenario.vehicletype_set.all():
+        params = vt.lca_parameters or eflips_model_default("VehicleType", "lca_parameters")
+        params["vehicle_lifetime_years"] = vt.tco_parameters["useful_life"]
+        params["average_consumption_kwh_per_km"] = vt.tco_parameters[
+            "average_electricity_consumption"
+        ]
+        vt.lca_parameters = params
+        vt.save(update_fields=["lca_parameters"])
+        battery_type = vt.battery_type
+        if battery_type is not None:
+            params = battery_type.lca_parameters or eflips_model_default(
+                "BatteryType", "lca_parameters"
+            )
+            params["battery_lifetime_years"] = battery_type.tco_parameters["useful_life"]
+            battery_type.lca_parameters = params
+            battery_type.save(update_fields=["lca_parameters"])
+    for cpt in ChargingPointType.objects.filter(scenario=scenario):
+        params = cpt.lca_parameters or eflips_model_default("ChargingPointType", "lca_parameters")
+        params["infrastructure_lifetime_years"] = cpt.tco_parameters["useful_life"]
+        cpt.lca_parameters = params
+        cpt.save(update_fields=["lca_parameters"])
+
+
+def eflips_calculate_lca(scenario: Scenario) -> dict:
+    """Calculate the LCA with eflips-impact, after the TCO.
+
+    :return: kg CO2-eq per revenue kilometre by component, as the result page reads it.
+    """
+    ensure_lca_parameters(scenario)
+    result = calculate_lca(
+        scenario.id,
+        database_url=create_db_url(),
+        scaling_factor=get_scaling_factor(scenario),
+        eta_avail=scenario.tco_parameters["eta_avail"],
+    )
+    return {item.name: emissions.gwp for item, emissions in result.emissions_by_type.items()}
 
 
 def create_db_url():
