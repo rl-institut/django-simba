@@ -1102,14 +1102,13 @@ def get_stats(task_id: str) -> dict:
     return resp
 
 
-def occupancy_metrics(intervals: list, window_seconds: float, configured_places) -> dict:
-    """Occupancy of one station's charging points over the simulated period.
+def peak_concurrency(intervals: list) -> int:
+    """The most ``(start, end)`` intervals open at the same time.
 
-    :param intervals: ``(time_start, time_end)`` of every charging event at the station.
-    :param window_seconds: Length of the simulated period.
-    :param configured_places: ``amount_charging_places``, or None where no limit was set.
-    :return: ``{"chargers", "peak", "avg_concurrent", "utilization"}``
+    An interval ending when another starts does not overlap it, so a vehicle whose events follow
+    one another is counted once.
     """
+    # (time, -1) sorts before (time, 1): ends are counted before starts at the same time
     timeline = sorted(
         [(start, 1) for start, unused_end in intervals]
         + [(end, -1) for unused_start, end in intervals]
@@ -1119,6 +1118,18 @@ def occupancy_metrics(intervals: list, window_seconds: float, configured_places)
     for unused_time, delta in timeline:
         concurrent += delta
         peak = max(peak, concurrent)
+    return peak
+
+
+def occupancy_metrics(intervals: list, window_seconds: float, configured_places) -> dict:
+    """Occupancy of one station's charging points over the simulated period.
+
+    :param intervals: ``(time_start, time_end)`` of every charging event at the station.
+    :param window_seconds: Length of the simulated period.
+    :param configured_places: ``amount_charging_places``, or None where no limit was set.
+    :return: ``{"chargers", "peak", "avg_concurrent", "utilization"}``
+    """
+    peak = peak_concurrency(intervals)
 
     # Without a configured limit the station has to be built for its busiest moment
     chargers = configured_places or peak
@@ -1757,6 +1768,12 @@ def get_tco(task_id: str) -> dict:
     s = Scenario.objects.get(task_id=task_id)
     result = s.tco_result
     return result
+
+
+def get_lca(task_id: str) -> dict:
+    # return lca_result JsonField of scenario
+    s = Scenario.objects.get(task_id=task_id)
+    return s.lca_result
 
 
 def get_combined_piecharts(task_id: str, filters=None) -> tuple[pd.DataFrame, pd.DataFrame]:

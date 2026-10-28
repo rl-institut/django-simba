@@ -199,10 +199,13 @@ class Scenario(models.Model):
                 "diesel": 0.02,
                 "insurance": 0.02,
             },
+            # share of the fleet available for service; eflips-impact sizes the fleet up by it
+            "eta_avail": 1.0,
         },
         blank=True,
     )
     tco_result = models.JSONField(default=None, null=True, blank=True)
+    lca_result = models.JSONField(default=None, null=True, blank=True)
 
     manager = models.ForeignKey(
         User, on_delete=models.SET_NULL, default=None, null=True, blank=True, related_name="+"
@@ -297,8 +300,7 @@ class BatteryType(models.Model):
         scenario (Scenario): The scenario to which the battery type is associated. Foreign key to the Scenario model.
         specific_mass (float): The specific mass of the battery relative to gross capacity.
                               Cannot be null, but can be blank.
-        chemistry (dict): The chemistry of the battery, defined in eFLIPS-LCA.
-                          Defaults to an empty dictionary.
+        chemistry (str): The chemistry of the battery as a plain string, e.g. "LFP" or "NMC622".
 
     Meta:
         db_table (str): The name of the database table for this model (set to "BatteryType").
@@ -307,7 +309,7 @@ class BatteryType(models.Model):
         To create a new BatteryType instance and associate it with a scenario:
         >>> scenario_instance = Scenario.objects.get(id=1)
         >>> battery_type_instance = BatteryType(scenario=scenario_instance,
-        ... specific_mass=2.5, chemistry={"type": "Li-ion"})
+        ... specific_mass=2.5, chemistry="LFP")
         >>> battery_type_instance.save()
     """
 
@@ -318,13 +320,14 @@ class BatteryType(models.Model):
 
     # relative to gross capacity
     specific_mass = models.FloatField(null=False, blank=True)
-    # defined in eFLIPS-LCA
-    chemistry = models.JSONField(null=False, default=dict)
+    chemistry = models.TextField(null=False, blank=True, default="")
     tco_parameters = models.JSONField(
         null=True,
         blank=True,
         db_default={"useful_life": 7, "procurement_cost": 0, "cost_escalation": 0.01},
     )
+    # Filled in by ebustoolbox.tasks.ensure_lca_parameters before the LCA is calculated
+    lca_parameters = models.JSONField(null=True, blank=True)
 
 
 class AssocVehicleTypeVehicleClass(models.Model):
@@ -441,6 +444,8 @@ class VehicleType(models.Model):
             "cost_escalation": 0.02,
         },
     )
+    # See BatteryType.lca_parameters
+    lca_parameters = models.JSONField(null=True, blank=True)
     vehicle_classes = models.ManyToManyField("VehicleClass", through="AssocVehicleTypeVehicleClass")
     """Vehicle classes this vehicle type belongs to."""
     energy_source = models.CharField(
@@ -537,6 +542,8 @@ class ChargingPointType(models.Model):
         null=True,
         db_default={"useful_life": 20, "procurement_cost": 0, "cost_escalation": 0.02},
     )
+    # See BatteryType.lca_parameters
+    lca_parameters = models.JSONField(null=True, blank=True)
 
 
 class VehicleClass(models.Model):

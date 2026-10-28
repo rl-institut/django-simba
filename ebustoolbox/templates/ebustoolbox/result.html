@@ -129,13 +129,37 @@
       <div id="costs-section" class="flex justify-between items-center pb-2">
         <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
       </div>
+      {% if avg_scenario.simba_options.tco_error %}
+      {% translate "Die Gesamtbetriebskosten konnten nicht berechnet werden." as message %}
+      {% include "ebustoolbox/partials/impact_error.html" with message=message error=avg_scenario.simba_options.tco_error %}
+      {% else %}
       {% include "ebustoolbox/partials/result_export.html" with endpoint="tco" json_only=True %}
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <div id="tco-bar" class="chart-container h-[480px]"></div>
         </div>
       </div>
+      {% endif %}
     </div>
+
+    {% if avg_scenario.simba_options.lca_error or avg_scenario.lca_result %}
+    <div class="flex flex-col">
+      <div id="lca-section" class="flex justify-between items-center pb-2">
+        <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Ökobilanz' %}</h2>
+      </div>
+      {% if avg_scenario.simba_options.lca_error %}
+      {% translate "Die Ökobilanz konnte nicht berechnet werden." as message %}
+      {% include "ebustoolbox/partials/impact_error.html" with message=message error=avg_scenario.simba_options.lca_error %}
+      {% else %}
+      {% include "ebustoolbox/partials/result_export.html" with endpoint="lca" json_only=True %}
+      <div class="bg-white rounded-lg shadow-md mb-12">
+        <div class="p-8">
+          <div id="lca-bar" class="chart-container h-[480px]"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
 
     <div class="flex flex-col">
         <div id="infrastructure-section" class="flex justify-between items-center pb-2">
@@ -1909,7 +1933,11 @@
 
     const scenarioName = "{{ scenario.name }}";
 
-    async function fetchAndRenderTCOBars(chartName, chartID) {
+    // One stacked bar per revenue kilometre: the TCO in €, the LCA in kg CO₂-Äq. Both
+    // share the layout and the category labels and differ in title, unit and precision.
+    async function fetchAndRenderStackedBars(chartName, chartID, title, axisName, unit, digits) {
+        const container = document.getElementById(chartID);
+        if (!container) return;  // the chart is only rendered once there is a result
         const res = await fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
         const result = await res.json();
 
@@ -1924,9 +1952,9 @@
             "OTHER": "Sonstiges"
         };
 
-        // Money is always shown with exactly two decimals. minimumFractionDigits on its own
+        // Always shown with exactly this many decimals. minimumFractionDigits on its own
         // leaves the maximum at three, which is where the stray third digit came from.
-        const formatEuro = (value) => formatNumber(value, 2);
+        const formatValue = (value) => formatNumber(value, digits);
 
         const categories = Object.keys(result);
         const translatedCategories = categories.map(key => labelMapping[key] || key);
@@ -1935,17 +1963,17 @@
         const yAxisMax = totalCost * 1.2;
 
         const option = {
-            title: { text: 'Gesamtbetriebskosten (TCO)', left: 'center' },
+            title: { text: title, left: 'center' },
             tooltip: {
                 trigger: 'item',
                 formatter: (params) => {
-                    const val = formatEuro(params.value);
+                    const val = formatValue(params.value);
                     return `
                         <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
                             ${params.name}
                         </div>
                         <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${params.color};"></span>
-                        ${params.seriesName}: <b>${val} €/km</b>
+                        ${params.seriesName}: <b>${val} ${unit}</b>
                     `;
                 }
             },
@@ -1961,7 +1989,7 @@
             },
             yAxis: {
                 type: 'value',
-                name: 'Kosten (€/km)',
+                name: axisName,
                 nameGap: 25,
                 max: Math.ceil(yAxisMax)
             },
@@ -1976,7 +2004,7 @@
                     show: true,
                     position: 'inside',
                     // Only show value if it's large enough to fit inside the segment
-                    formatter: (params) => params.value > 0.02 ? formatEuro(params.value) + ' €/km' : ''
+                    formatter: (params) => params.value > 0.02 ? `${formatValue(params.value)} ${unit}` : ''
                 },
                 data: [result[key]]
             })),
@@ -1990,7 +2018,7 @@
                     show: true,
                     position: 'top',
                     distance: 15,
-                    formatter: () => `{title|Gesamt}\n{value|${formatEuro(totalCost)} €/km}`,
+                    formatter: () => `{title|Gesamt}\n{value|${formatValue(totalCost)} ${unit}}`,
                     rich: {
                         title: { fontSize: 12, color: '#666', align: 'center' },
                         value: { fontSize: 16, fontWeight: 'bold', color: '#333', align: 'center', lineHeight: 25 }
@@ -2000,7 +2028,7 @@
         ]
     };
 
-    const chart = echarts.init(document.getElementById(chartID), 'ebusPalette');
+    const chart = echarts.init(container, 'ebusPalette');
     chart.setOption(option);
 }
 
@@ -2329,7 +2357,8 @@
         // fetchAndRenderHistogram("speed_histogram", "SpeedHistogramChart", "Verteilung Durchschnittsgeschwindigkeiten"),
         fetchAndRenderSoCHistogram("soc_hist", "soc-heatmap"),
         fetchAndRenderGanttChartSOC("gantt", "soc-gantt", "Fahrzeug Ladestand über Zeit"),
-        fetchAndRenderTCOBars('tco', 'tco-bar'),
+        fetchAndRenderStackedBars('tco', 'tco-bar', 'Gesamtbetriebskosten (TCO)', 'Kosten (€/km)', '€/km', 2),
+        fetchAndRenderStackedBars('lca', 'lca-bar', 'Treibhausgasemissionen (Ökobilanz)', 'Emissionen (kg CO₂-Äq/km)', 'kg CO₂-Äq/km', 3),
 	fetchAndRenderCumulativeChart("cumulative_coverage", "cumulative-coverage", "Anteil erfüllbarer Umläufe"),
         loadRotationTable(taskIdAvg),
         loadElectrifiedStations(taskIdAvg)

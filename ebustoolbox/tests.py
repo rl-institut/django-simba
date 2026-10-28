@@ -28,6 +28,8 @@ from .import_export import visit_all_scenario_queries, ScenarioJSONImporterExpor
 from . import tasks
 from .forms import UploadFileForm
 from .models import (
+    BatteryType,
+    ChargingPointType,
     DepotConfigurationWish,
     Notification,
     Route,
@@ -1447,3 +1449,165 @@ class ZipValidationTest(SimpleTestCase):
                 validate_zip(z, allowed_file_nr, allowed_size - 1, allowed_nesting)
             with self.assertRaises(ZipFileException):
                 validate_zip(z, allowed_file_nr, allowed_size, allowed_nesting - 1)
+
+
+class EflipsImpactParameterTest(TestCase):
+    """The rows and parameters the toolchain prepares for eflips-impact before it calculates."""
+
+    def setUp(self):
+        self.scenario = Scenario.objects.create(name="scenario", task_id=get_unique_task_id())
+        self.battery_type = BatteryType.objects.create(
+            scenario=self.scenario, specific_mass=6.0, chemistry="LFP"
+        )
+        self.vehicle_type = VehicleType.objects.create(
+            scenario=self.scenario,
+            name="Gelenkbus",
+            name_short="AB",
+            battery_type=self.battery_type,
+            battery_capacity=350,
+            charging_curve=[[0.0, 150], [1.0, 150]],
+            opportunity_charging_capable=True,
+        )
+        # pick up the database defaults of the parameter columns
+        self.scenario.refresh_from_db()
+        self.vehicle_type.refresh_from_db()
+        self.battery_type.refresh_from_db()
+
+    def test_charging_point_types_take_the_values_of_the_costs_page(self):
+        self.scenario.tco_parameters.update(
+            {
+                "useful_life_chargepoint_depot": 10,
+                "procurement_cost_chargepoint_depot": 50000.0,
+                "useful_life_chargepoint_opp": 12,
+                "procurement_cost_chargepoint_opp": 250000.0,
+                "cost_escalation_chargepoint": 0.03,
+            }
+        )
+        self.scenario.save()
+
+        tasks.ensure_charging_point_types(self.scenario)
+        # a second simulation pass reuses the rows
+        tasks.ensure_charging_point_types(self.scenario)
+
+        charging_point_types = ChargingPointType.objects.filter(scenario=self.scenario)
+        self.assertEqual(charging_point_types.count(), 2)
+        depot = charging_point_types.get(name_short="DCS")
+        self.assertEqual(
+            depot.tco_parameters,
+            {"useful_life": 10, "procurement_cost": 50000.0, "cost_escalation": 0.03},
+        )
+        opportunity = charging_point_types.get(name_short="OCS")
+        self.assertEqual(opportunity.tco_parameters["procurement_cost"], 250000.0)
+
+    def test_charging_point_types_keep_their_defaults_without_the_costs_page(self):
+        tasks.ensure_charging_point_types(self.scenario)
+        depot = ChargingPointType.objects.get(scenario=self.scenario, name_short="DCS")
+        self.assertEqual(depot.tco_parameters["useful_life"], 20)
+
+    def test_lca_parameters_follow_eflips_model_and_the_tco(self):
+        self.vehicle_type.tco_parameters["average_electricity_consumption"] = 1.3
+        self.vehicle_type.save()
+        tasks.ensure_charging_point_types(self.scenario)
+
+        tasks.ensure_lca_parameters(self.scenario)
+
+        self.vehicle_type.refresh_from_db()
+        parameters = self.vehicle_type.lca_parameters
+        # emission factors from eflips-model, consumption and lifetime from the TCO
+        self.assertIn("chassis_emission_factors_per_kg", parameters)
+        self.assertEqual(parameters["average_consumption_kwh_per_km"], 1.3)
+        self.assertEqual(
+            parameters["vehicle_lifetime_years"], self.vehicle_type.tco_parameters["useful_life"]
+        )
+        self.battery_type.refresh_from_db()
+        self.assertEqual(
+            self.battery_type.lca_parameters["battery_lifetime_years"],
+            self.battery_type.tco_parameters["useful_life"],
+        )
+        for cpt in ChargingPointType.objects.filter(scenario=self.scenario):
+            self.assertEqual(
+                cpt.lca_parameters["infrastructure_lifetime_years"],
+                cpt.tco_parameters["useful_life"],
+            )
+
+    def test_a_failed_calculation_is_stored_for_the_result_page(self):
+        # as if copied from a sizing scenario that calculated it
+        self.scenario.lca_result = {"VEHICLE": 1.0}
+        self.scenario.simba_options = {"modes": "sim"}
+        self.scenario.save()
+
+        def fail(scenario):
+            raise ValueError("no empty_mass")
+
+        tasks.store_impact_result(self.scenario, "lca", fail)
+
+        self.scenario.refresh_from_db()
+        self.assertIsNone(self.scenario.lca_result)
+        self.assertEqual(self.scenario.simba_options["lca_error"], "ValueError: no empty_mass")
+        self.assertEqual(self.scenario.simba_options["modes"], "sim")
+
+        tasks.store_impact_result(self.scenario, "lca", lambda scenario: {"VEHICLE": 2.0})
+
+        self.scenario.refresh_from_db()
+        self.assertEqual(self.scenario.lca_result, {"VEHICLE": 2.0})
+        self.assertNotIn("lca_error", self.scenario.simba_options)
+
+    def _electrified_station(self, name, charge_type, amount_charging_places):
+        return Station.objects.create(
+            geom="POINT(0 0 0)",
+            name=name,
+            scenario=self.scenario,
+            is_electrified=True,
+            charge_type=charge_type,
+            voltage_level=EnumVoltageLevel.VOLTAGE_MV,
+            amount_charging_places=amount_charging_places,
+        )
+
+    def _stand(self, station, start_hour, end_hour, event_type=EventType.STANDBY):
+        day = make_aware(datetime(2024, 1, 1))
+        Event.objects.create(
+            scenario=self.scenario,
+            vehicle_type=self.vehicle_type,
+            station=station,
+            time_start=day + timedelta(hours=start_hour),
+            time_end=day + timedelta(hours=end_hour),
+            soc_start=0.5,
+            soc_end=0.5,
+            event_type=event_type,
+            timeseries={"time": [], "soc": []},
+        )
+
+    def test_zero_charging_places_is_an_unelectrified_station(self):
+        terminal = self._electrified_station("terminal", EnumChargeType.OPPORTUNITY, 0)
+        depot = self._electrified_station("depot", EnumChargeType.DEPOT, 0)
+        limited = self._electrified_station("limited", EnumChargeType.OPPORTUNITY, 2)
+
+        tasks.unelectrify_stations_without_charging_places(self.scenario)
+
+        terminal.refresh_from_db()
+        self.assertFalse(terminal.is_electrified)
+        self.assertIsNone(terminal.charge_type)
+        depot.refresh_from_db()
+        self.assertTrue(depot.is_electrified)
+        limited.refresh_from_db()
+        self.assertTrue(limited.is_electrified)
+
+    def test_unlimited_charging_places_are_the_most_vehicles_standing_at_once(self):
+        unlimited = self._electrified_station("unlimited", EnumChargeType.OPPORTUNITY, None)
+        # two vehicles overlap from 9 to 10, whether charging or standing; the 10 to 11 event
+        # starts as the 8 to 10 one ends and needs no place of its own
+        self._stand(unlimited, 8, 10, EventType.CHARGING_OPPORTUNITY)
+        self._stand(unlimited, 9, 11)
+        self._stand(unlimited, 10, 11)
+        limited = self._electrified_station("limited", EnumChargeType.OPPORTUNITY, 5)
+        self._stand(limited, 8, 10)
+        unused = self._electrified_station("unused", EnumChargeType.OPPORTUNITY, None)
+
+        tasks.resolve_unlimited_charging_places(self.scenario)
+
+        unlimited.refresh_from_db()
+        self.assertEqual(unlimited.amount_charging_places, 2)
+        limited.refresh_from_db()
+        self.assertEqual(limited.amount_charging_places, 5)
+        unused.refresh_from_db()
+        self.assertIsNone(unused.amount_charging_places)
