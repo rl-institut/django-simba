@@ -129,25 +129,35 @@
       <div id="costs-section" class="flex justify-between items-center pb-2">
         <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Kosten' %}</h2>
       </div>
+      {% if avg_scenario.simba_options.tco_error %}
+      {% translate "Die Gesamtbetriebskosten konnten nicht berechnet werden." as message %}
+      {% include "ebustoolbox/partials/impact_error.html" with message=message error=avg_scenario.simba_options.tco_error %}
+      {% else %}
       {% include "ebustoolbox/partials/result_export.html" with endpoint="tco" json_only=True %}
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <div id="tco-bar" class="chart-container h-[480px]"></div>
         </div>
       </div>
+      {% endif %}
     </div>
 
-    {% if avg_scenario.lca_result %}
+    {% if avg_scenario.simba_options.lca_error or avg_scenario.lca_result %}
     <div class="flex flex-col">
       <div id="lca-section" class="flex justify-between items-center pb-2">
         <h2 class="text-xl text-slate-800 font-light uppercase">{% translate 'Ökobilanz' %}</h2>
       </div>
+      {% if avg_scenario.simba_options.lca_error %}
+      {% translate "Die Ökobilanz konnte nicht berechnet werden." as message %}
+      {% include "ebustoolbox/partials/impact_error.html" with message=message error=avg_scenario.simba_options.lca_error %}
+      {% else %}
       {% include "ebustoolbox/partials/result_export.html" with endpoint="lca" json_only=True %}
       <div class="bg-white rounded-lg shadow-md mb-12">
         <div class="p-8">
           <div id="lca-bar" class="chart-container h-[480px]"></div>
         </div>
       </div>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -1927,7 +1937,7 @@
     // share the layout and the category labels and differ in title, unit and precision.
     async function fetchAndRenderStackedBars(chartName, chartID, title, axisName, unit, digits) {
         const container = document.getElementById(chartID);
-        if (!container) return;  // the LCA section is only rendered once there is a result
+        if (!container) return;  // the chart is only rendered once there is a result
         const res = await fetch(`/simba/result/${taskIdAvg}/${chartName}/`);
         const result = await res.json();
 

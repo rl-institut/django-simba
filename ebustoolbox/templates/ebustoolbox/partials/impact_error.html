@@ -1,0 +1,8 @@
+{% comment %}
+A failed eflips-impact calculation on the result page.
+message: what could not be calculated; error: the stored exception text
+{% endcomment %}
+<div class="bg-red-50 border border-red-200 text-red-800 rounded-lg shadow-md mb-12 p-8">
+  <p class="font-medium">{{ message }}</p>
+  <p class="mt-2 text-sm font-mono break-words">{{ error }}</p>
+</div>

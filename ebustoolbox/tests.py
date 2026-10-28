@@ -1529,3 +1529,85 @@ class EflipsImpactParameterTest(TestCase):
                 cpt.lca_parameters["infrastructure_lifetime_years"],
                 cpt.tco_parameters["useful_life"],
             )
+
+    def test_a_failed_calculation_is_stored_for_the_result_page(self):
+        # as if copied from a sizing scenario that calculated it
+        self.scenario.lca_result = {"VEHICLE": 1.0}
+        self.scenario.simba_options = {"modes": "sim"}
+        self.scenario.save()
+
+        def fail(scenario):
+            raise ValueError("no empty_mass")
+
+        tasks.store_impact_result(self.scenario, "lca", fail)
+
+        self.scenario.refresh_from_db()
+        self.assertIsNone(self.scenario.lca_result)
+        self.assertEqual(self.scenario.simba_options["lca_error"], "ValueError: no empty_mass")
+        self.assertEqual(self.scenario.simba_options["modes"], "sim")
+
+        tasks.store_impact_result(self.scenario, "lca", lambda scenario: {"VEHICLE": 2.0})
+
+        self.scenario.refresh_from_db()
+        self.assertEqual(self.scenario.lca_result, {"VEHICLE": 2.0})
+        self.assertNotIn("lca_error", self.scenario.simba_options)
+
+    def _electrified_station(self, name, charge_type, amount_charging_places):
+        return Station.objects.create(
+            geom="POINT(0 0 0)",
+            name=name,
+            scenario=self.scenario,
+            is_electrified=True,
+            charge_type=charge_type,
+            voltage_level=EnumVoltageLevel.VOLTAGE_MV,
+            amount_charging_places=amount_charging_places,
+        )
+
+    def _stand(self, station, start_hour, end_hour, event_type=EventType.STANDBY):
+        day = make_aware(datetime(2024, 1, 1))
+        Event.objects.create(
+            scenario=self.scenario,
+            vehicle_type=self.vehicle_type,
+            station=station,
+            time_start=day + timedelta(hours=start_hour),
+            time_end=day + timedelta(hours=end_hour),
+            soc_start=0.5,
+            soc_end=0.5,
+            event_type=event_type,
+            timeseries={"time": [], "soc": []},
+        )
+
+    def test_zero_charging_places_is_an_unelectrified_station(self):
+        terminal = self._electrified_station("terminal", EnumChargeType.OPPORTUNITY, 0)
+        depot = self._electrified_station("depot", EnumChargeType.DEPOT, 0)
+        limited = self._electrified_station("limited", EnumChargeType.OPPORTUNITY, 2)
+
+        tasks.unelectrify_stations_without_charging_places(self.scenario)
+
+        terminal.refresh_from_db()
+        self.assertFalse(terminal.is_electrified)
+        self.assertIsNone(terminal.charge_type)
+        depot.refresh_from_db()
+        self.assertTrue(depot.is_electrified)
+        limited.refresh_from_db()
+        self.assertTrue(limited.is_electrified)
+
+    def test_unlimited_charging_places_are_the_most_vehicles_standing_at_once(self):
+        unlimited = self._electrified_station("unlimited", EnumChargeType.OPPORTUNITY, None)
+        # two vehicles overlap from 9 to 10, whether charging or standing; the 10 to 11 event
+        # starts as the 8 to 10 one ends and needs no place of its own
+        self._stand(unlimited, 8, 10, EventType.CHARGING_OPPORTUNITY)
+        self._stand(unlimited, 9, 11)
+        self._stand(unlimited, 10, 11)
+        limited = self._electrified_station("limited", EnumChargeType.OPPORTUNITY, 5)
+        self._stand(limited, 8, 10)
+        unused = self._electrified_station("unused", EnumChargeType.OPPORTUNITY, None)
+
+        tasks.resolve_unlimited_charging_places(self.scenario)
+
+        unlimited.refresh_from_db()
+        self.assertEqual(unlimited.amount_charging_places, 2)
+        limited.refresh_from_db()
+        self.assertEqual(limited.amount_charging_places, 5)
+        unused.refresh_from_db()
+        self.assertIsNone(unused.amount_charging_places)

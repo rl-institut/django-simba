@@ -54,6 +54,7 @@ from core.models import EnumProgress, Progress
 from simba.data_container import DataContainer
 from simba.schedule import Schedule as SimbaSchedule
 from . import schedule_readers, forms
+from .data import peak_concurrency
 from .models import (
     copy_model_instance,
     Area,
@@ -2025,6 +2026,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
     ).delete()
 
     try:
+        unelectrify_stations_without_charging_places(db_scenario)
         logger.info(f"S.ID:{db_scenario.id}:Getting schedule from db {datetime.now()}")
         schedule, args = get_schedule_from_db(db_scenario)
 
@@ -2169,6 +2171,7 @@ def _run_ebus_toolchain(self, task_id, progress_id=None):
         progress.current_work += 1
         progress.status = _("Berechne TCO")
         progress.save()
+        resolve_unlimited_charging_places(db_scenario)
         eflips_calculate_impact(db_scenario, progress)
 
         check_event_soc_consistency(db_scenario)
@@ -2553,21 +2556,37 @@ def ensure_charging_point_types(scenario: Scenario) -> None:
 
 
 def eflips_calculate_impact(scenario: Scenario, progress: Progress) -> None:
-    """Calculate the TCO and the LCA with eflips-impact and store both on the scenario.
+    """Calculate the TCO and the LCA with eflips-impact and store both on the scenario."""
+    store_impact_result(scenario, "tco", eflips_calculate_tco)
+    logger.info(f"S.ID:{scenario.id}:Running eFLIPS LCA {datetime.now()}")
+    progress.status = _("Berechne Ökobilanz")
+    progress.save()
+    store_impact_result(scenario, "lca", eflips_calculate_lca)
 
-    Neither is needed for the rest of the run, so a failure is logged and leaves the
-    result empty; the result page copes without it.
+
+def store_impact_result(
+    scenario: Scenario, name: str, calculate: Callable[[Scenario], dict]
+) -> None:
+    """Store one eflips-impact calculation in ``<name>_result``.
+
+    Neither calculation is needed for the rest of the run, so a failure is logged and
+    stored as ``simba_options["<name>_error"]`` for the result page to show. Both fields are
+    always overwritten: the default scenario is a copy of the simulated sizing scenario and
+    must not show its result or its error.
     """
     try:
-        scenario.tco_result = eflips_calculate_tco(scenario)
-        scenario.save(update_fields=["tco_result"])
-        logger.info(f"S.ID:{scenario.id}:Running eFLIPS LCA {datetime.now()}")
-        progress.status = _("Berechne Ökobilanz")
-        progress.save()
-        scenario.lca_result = eflips_calculate_lca(scenario)
-        scenario.save(update_fields=["lca_result"])
-    except Exception:
-        logger.error(f"S.ID:{scenario.id}:eflips-impact failed\n{traceback.format_exc()}")
+        result, error = calculate(scenario), None
+    except Exception as e:
+        logger.error(f"S.ID:{scenario.id}:eflips-impact {name} failed\n{traceback.format_exc()}")
+        result, error = None, f"{type(e).__name__}: {e}"
+    setattr(scenario, f"{name}_result", result)
+    # other steps of the run write simba_options too, do not overwrite them with a stale copy
+    scenario.refresh_from_db(fields=["simba_options"])
+    if error is None:
+        scenario.simba_options.pop(f"{name}_error", None)
+    else:
+        scenario.simba_options[f"{name}_error"] = error
+    scenario.save(update_fields=[f"{name}_result", "simba_options"])
 
 
 def eflips_calculate_tco(scenario: Scenario) -> dict:
@@ -3084,6 +3103,57 @@ def electrify_db_stations(scenario: Scenario, station_id_list, unelectrify=True)
                 "amount_charging_places",
             ],
         )
+
+
+def unelectrify_stations_without_charging_places(scenario: Scenario) -> None:
+    """Treat a station with zero charging places as not electrified.
+
+    No vehicle can charge there, so it must not reach SimBA or eflips-impact as electrified.
+    Depots are left alone: their charging happens in the depot's areas and their station is
+    filled in by electrify_depot_station_w_default.
+    """
+    stations = [
+        unelectrify_station(station)
+        for station in Station.objects.filter(
+            scenario=scenario, is_electrified=True, amount_charging_places=0
+        ).exclude(charge_type=EnumChargeType.DEPOT)
+    ]
+    Station.objects.bulk_update(
+        stations,
+        [
+            "is_electrified",
+            "charge_type",
+            "voltage_level",
+            "amount_charging_places",
+            "power_per_charger",
+            "power_total",
+        ],
+    )
+
+
+def resolve_unlimited_charging_places(scenario: Scenario) -> None:
+    """Give electrified terminal stations without a limit as many charging places as they used.
+
+    ``amount_charging_places`` None means unlimited. After the simulation that is the most
+    vehicles standing at the station at once: a standing vehicle blocks a charging place for
+    its whole stay, whether it charges or not, since vehicles are not shunted.
+
+    The default scenario is copied from the simulated sizing scenario, so it inherits these
+    counts as limits: the infrastructure is sized by the sizing run.
+    """
+    depot_stations = Depot.objects.filter(scenario=scenario).values_list("station_id", flat=True)
+    stations = list(
+        Station.objects.filter(
+            scenario=scenario, is_electrified=True, amount_charging_places__isnull=True
+        ).exclude(id__in=depot_stations)
+    )
+    for station in stations:
+        intervals = Event.objects.filter(scenario=scenario, station=station).values_list(
+            "time_start", "time_end"
+        )
+        # A station nobody stood at keeps None: it has no simulated occupancy to size it by
+        station.amount_charging_places = peak_concurrency(intervals) or None
+    Station.objects.bulk_update(stations, ["amount_charging_places"])
 
 
 def unelectrify_station(station: Station) -> Station:
